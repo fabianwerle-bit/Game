@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <!-- Slime Cleanup launcher icon: the slime on a rounded green field. -->
+  <defs>
+    <radialGradient id="bg" cx="0.5" cy="0.32" r="0.85">
+      <stop offset="0" stop-color="#2f6f45"/>
+      <stop offset="1" stop-color="#123020"/>
+    </radialGradient>
+    <radialGradient id="body" cx="0.38" cy="0.30" r="0.78">
+      <stop offset="0" stop-color="#b6ff9a"/>
+      <stop offset="0.45" stop-color="#4fd45a"/>
+      <stop offset="1" stop-color="#1d8a33"/>
+    </radialGradient>
+    <radialGradient id="gloss" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+
+  <!-- Contact shadow -->
+  <ellipse cx="256" cy="404" rx="132" ry="26" fill="#000000" opacity="0.34"/>
+
+  <!-- Body, slightly squashed the way it sits at rest -->
+  <ellipse cx="256" cy="286" rx="152" ry="130" fill="url(#body)"/>
+  <ellipse cx="256" cy="286" rx="152" ry="130" fill="none" stroke="#e8ffd8" stroke-opacity="0.5" stroke-width="5"/>
+
+  <!-- Wet highlight -->
+  <ellipse cx="200" cy="228" rx="54" ry="36" fill="url(#gloss)" transform="rotate(-24 200 228)"/>
+
+  <!-- Eyes -->
+  <ellipse cx="212" cy="264" rx="36" ry="40" fill="#fdfff8"/>
+  <ellipse cx="302" cy="264" rx="36" ry="40" fill="#fdfff8"/>
+  <circle cx="220" cy="272" r="19" fill="#0d1216"/>
+  <circle cx="310" cy="272" r="19" fill="#0d1216"/>
+  <circle cx="227" cy="264" r="6" fill="#ffffff"/>
+  <circle cx="317" cy="264" r="6" fill="#ffffff"/>
+
+  <!-- Mouth -->
+  <path d="M232 330 q24 26 48 0" fill="none" stroke="#28110f" stroke-width="11" stroke-linecap="round"/>
+
+  <!-- A can stuck to the side, because that is the whole game -->
+  <g transform="rotate(18 372 232)">
+    <rect x="352" y="196" width="40" height="66" rx="9" fill="#d0472f"/>
+    <rect x="352" y="196" width="40" height="13" rx="6" fill="#d8dade"/>
+    <rect x="352" y="222" width="40" height="8" fill="#f2f3f5" opacity="0.85"/>
+  </g>
+</svg>

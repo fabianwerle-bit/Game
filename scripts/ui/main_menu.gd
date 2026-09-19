@@ -32,7 +32,7 @@ func _build() -> void:
 	# world behind it.
 	var shade := ColorRect.new()
 	shade.set_anchors_preset(Control.PRESET_FULL_RECT)
-	shade.color = Color(0.02, 0.06, 0.05, 0.35 if _page == Page.ROOT else 0.72)
+	shade.color = Color(0.02, 0.06, 0.05, 0.52 if _page == Page.ROOT else 0.78)
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(shade)
 

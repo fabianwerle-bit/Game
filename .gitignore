@@ -9,6 +9,8 @@ toolchain/
 
 # Godot
 .godot/
-/android/
+
+# Export credentials (keystore passwords) stay out of the repo
+export_credentials.cfg
 *.translation
-export_presets.cfg
+.build_version

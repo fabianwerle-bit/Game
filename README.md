@@ -61,15 +61,53 @@ is an honest account of both sides.
 - **No background music.** There is an end-of-round jingle and a record sting,
   but no looping soundtrack. The brief rules out synthesised filler, so rather
   than fake one, the slot is empty and documented.
-- **Never run on a phone.** Everything here was verified headlessly and with
-  software rendering. No Android or iOS build has been produced or tested, and
-  no iOS export preset exists (that needs a Mac with Xcode).
+- **Never run on a real phone.** The APK builds, signs and verifies, and the
+  exported build boots and renders correctly under software rendering here —
+  but no physical Android device has run it. Expect to find device-specific
+  problems. There is no iOS build either; that needs a Mac with Xcode.
 - **Textures are 1k**, fine for a phone but not for close-ups.
 
-## Playing it
+## Installing the APK
 
-Install Godot 4.6, open the project and run it. On a desktop build the
-keyboard (WASD) drives the slime, so the joystick is not needed to try it.
+`build/SlimeCleanup.apk` is a signed, installable release build.
+
+- Android 7.0 (API 24) or newer, arm64, OpenGL ES 3.0
+- Portrait only, and it asks for **no permissions at all** — no internet, no
+  storage, nothing
+- Package `de.fabian.slimecleanup`, version 0.3.0
+
+Copy it to the phone and open it. Android will ask you to allow installing
+from whichever app you opened it with, because it does not come from Play.
+
+## Building the APK yourself
+
+```sh
+GODOT=/path/to/godot ANDROID_SDK=/path/to/android-sdk tools/build_android.sh
+```
+
+It runs the checks first, then exports. Two settings in this project exist
+solely to make that export work, and both fail *silently* if they go missing:
+
+- `project.godot` must keep
+  `rendering/textures/vram_compression/import_etc2_astc=true`. Android
+  requires textures it can import in ETC2/ASTC, and Godot's check for this
+  sets the export invalid while printing an empty error list.
+- `export_presets.cfg` must keep the `custom_template/debug` and
+  `custom_template/release` keys even when empty, or Godot takes the
+  custom-template branch, finds nothing and again reports nothing.
+
+### About the signing key
+
+`android/slime-release.keystore` (alias `slime`, password `slimecleanup`) is a
+**prototype key, committed in the open**, so that updates you build can install
+over this APK. It is not a secret and must not be treated as one. Before any
+public release, generate your own key, keep it out of the repository, and
+store it somewhere safe — whoever holds it can sign updates to your app.
+
+## Playing it on a desktop
+
+Install Godot 4.6, open the project and run it. The keyboard (WASD) drives the
+slime, so the joystick is not needed to try it.
 
 ## Running the checks
 

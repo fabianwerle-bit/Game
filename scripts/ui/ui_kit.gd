@@ -34,9 +34,12 @@ static func button(text: String, primary: bool = false) -> Button:
 	b.add_theme_color_override("font_hover_color", GREEN_DEEP if primary else GREEN)
 	b.add_theme_color_override("font_pressed_color", GREEN_DEEP)
 
-	var normal := _button_style(GREEN if primary else Color(1, 1, 1, 0.09))
-	var hover := _button_style(GREEN.lightened(0.12) if primary else Color(1, 1, 1, 0.16))
-	var pressed := _button_style(GREEN.darkened(0.16) if primary else Color(1, 1, 1, 0.22))
+	# Secondary buttons need a solid dark plate, not a translucent tint: the
+	# menu sits over a live, brightly lit 3D scene and a 9% white wash left the
+	# labels unreadable.
+	var normal := _button_style(GREEN if primary else Color(0.05, 0.11, 0.10, 0.82))
+	var hover := _button_style(GREEN.lightened(0.12) if primary else Color(0.09, 0.19, 0.16, 0.9))
+	var pressed := _button_style(GREEN.darkened(0.16) if primary else Color(0.13, 0.26, 0.21, 0.95))
 	b.add_theme_stylebox_override("normal", normal)
 	b.add_theme_stylebox_override("hover", hover)
 	b.add_theme_stylebox_override("pressed", pressed)
@@ -72,6 +75,8 @@ static func body(text: String, size: int = 28, colour: Color = MUTED) -> Label:
 	l.text = text
 	l.add_theme_font_size_override("font_size", size)
 	l.add_theme_color_override("font_color", colour)
+	l.add_theme_color_override("font_outline_color", Color(0.02, 0.06, 0.05, 0.85))
+	l.add_theme_constant_override("outline_size", 6)
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	return l
 
