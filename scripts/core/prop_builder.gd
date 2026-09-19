@@ -52,6 +52,17 @@ static func material(name: StringName, colour: Color, roughness: float = 0.85,
 	return m
 
 
+## A textured building surface: the PBR set carries the detail, the tint keeps
+## each building its own colour. Falls back to flat colour when the texture
+## set has not been fetched.
+## `uv_scale` is how many times the texture repeats across one face. Primitive
+## meshes carry UVs in the 0..1 range per face, so anything below 1 stretches a
+## single copy over the whole surface — which is what made the first pass of
+## brick walls look smeared.
+static func clad(slot: StringName, tint: Color, uv_scale: float = 3.0) -> Material:
+	return MaterialLibrary.surface(slot, tint, uv_scale)
+
+
 static func glass_material() -> StandardMaterial3D:
 	if _materials.has(&"glass"):
 		return _materials[&"glass"]
@@ -197,10 +208,13 @@ static func _house(name: StringName) -> Node3D:
 		Color(0.95, 0.90, 0.80), Color(0.74, 0.80, 0.88)])
 	var roof_colour: Color = _palette(StringName(String(name) + "r"), [
 		Color(0.55, 0.24, 0.20), Color(0.35, 0.33, 0.38), Color(0.45, 0.30, 0.25)])
-	var wall := material(StringName("wall_%s" % wall_colour.to_html(false)), wall_colour, 0.9)
-	var roof := material(StringName("roof_%s" % roof_colour.to_html(false)), roof_colour, 0.8)
+	# Alternate brick and rendered walls so a street is not all one material.
+	var wall_slot := MaterialLibrary.BRICK if absi(String(name).hash()) % 2 == 0 \
+			else MaterialLibrary.PLASTER
+	var wall := clad(wall_slot, wall_colour, 3.2)
+	var roof := clad(MaterialLibrary.ROOF, roof_colour, 4.5)
 	var trim := material(&"trim", Color(0.96, 0.96, 0.94), 0.7)
-	var door_mat := material(&"door", Color(0.42, 0.26, 0.18), 0.6)
+	var door_mat := clad(MaterialLibrary.WOOD, Color(0.62, 0.40, 0.26), 1.6)
 
 	var w := 6.4
 	var d := 5.6
@@ -228,7 +242,7 @@ static func _shop(name: StringName) -> Node3D:
 	var wall_colour: Color = _palette(name, [
 		Color(0.90, 0.55, 0.45), Color(0.45, 0.68, 0.75), Color(0.85, 0.78, 0.45),
 		Color(0.62, 0.72, 0.52), Color(0.80, 0.60, 0.72)])
-	var wall := material(StringName("shopwall_%s" % wall_colour.to_html(false)), wall_colour, 0.85)
+	var wall := clad(MaterialLibrary.PLASTER, wall_colour, 3.6)
 	var awning_colour: Color = _palette(StringName(String(name) + "a"), [
 		Color(0.85, 0.25, 0.22), Color(0.20, 0.45, 0.72), Color(0.95, 0.72, 0.20)])
 	var awning := material(StringName("awning_%s" % awning_colour.to_html(false)), awning_colour, 0.7)
@@ -259,7 +273,7 @@ static func _apartment(name: StringName) -> Node3D:
 	root.name = "Block"
 	var wall_colour: Color = _palette(name, [
 		Color(0.84, 0.80, 0.74), Color(0.72, 0.76, 0.80), Color(0.88, 0.74, 0.62)])
-	var wall := material(StringName("blockwall_%s" % wall_colour.to_html(false)), wall_colour, 0.9)
+	var wall := clad(MaterialLibrary.CONCRETE, wall_colour, 3.4)
 	var trim := material(&"blocktrim", Color(0.95, 0.95, 0.93), 0.65)
 	var glass := glass_material()
 	var floors := 3 + absi(String(name).hash()) % 3
@@ -287,9 +301,9 @@ static func _warehouse(name: StringName) -> Node3D:
 	root.name = "Warehouse"
 	var wall_colour: Color = _palette(name, [
 		Color(0.62, 0.66, 0.70), Color(0.70, 0.62, 0.55), Color(0.55, 0.62, 0.62)])
-	var wall := material(StringName("whwall_%s" % wall_colour.to_html(false)), wall_colour, 0.95)
-	var roof := material(&"whroof", Color(0.38, 0.40, 0.44), 0.8, 0.25)
-	var door := material(&"whdoor", Color(0.28, 0.32, 0.36), 0.7, 0.2)
+	var wall := clad(MaterialLibrary.CONCRETE, wall_colour, 4.0)
+	var roof := clad(MaterialLibrary.METAL, Color(0.62, 0.64, 0.68), 3.0)
+	var door := clad(MaterialLibrary.METAL, Color(0.45, 0.50, 0.56), 2.0)
 	var w := 11.0
 	var d := 8.0
 	var h := 5.0
@@ -310,8 +324,8 @@ static func _beach_hut(name: StringName) -> Node3D:
 	var colour: Color = _palette(name, [
 		Color(0.95, 0.62, 0.55), Color(0.55, 0.82, 0.85), Color(0.98, 0.86, 0.55),
 		Color(0.70, 0.85, 0.65)])
-	var wall := material(StringName("hut_%s" % colour.to_html(false)), colour, 0.8)
-	var roof := material(&"hutroof", Color(0.93, 0.93, 0.90), 0.75)
+	var wall := clad(MaterialLibrary.WOOD, colour, 2.2)
+	var roof := clad(MaterialLibrary.WOOD, Color(0.93, 0.93, 0.90), 2.4)
 	root.add_child(_box(Vector3(2.6, 2.4, 2.4), Vector3(0, 1.2, 0), wall))
 	root.add_child(_roof(Vector3(3.0, 0.9, 2.8), Vector3(0, 2.75, 0), roof))
 	root.add_child(_box(Vector3(1.0, 1.7, 0.1), Vector3(0, 0.85, 1.22),
@@ -338,21 +352,52 @@ static func _palm() -> Node3D:
 	var root := Node3D.new()
 	root.name = "Palm"
 	var bark := material(&"palmbark", Color(0.52, 0.42, 0.30), 0.95)
-	var leaf := material(&"palmleaf", Color(0.28, 0.55, 0.26), 0.85)
-	# Leaning, segmented trunk.
-	for i in range(5):
-		var t := float(i) / 4.0
-		var seg := _cylinder(0.20 - 0.02 * t, 0.95, Vector3(t * t * 0.7, 0.5 + float(i) * 0.9, 0), bark, 8)
-		seg.rotation.z = deg_to_rad(-t * 14.0)
+	var leaf := material(&"palmleaf", Color(0.26, 0.54, 0.24), 0.8)
+	var leaf_dark := material(&"palmleafdark", Color(0.18, 0.40, 0.18), 0.85)
+
+	# Trunk: short stacked segments leaning a little further with every one, so
+	# it curves instead of tapering like a pipe.
+	var segments := 7
+	var height := 0.0
+	var lean := 0.0
+	var offset := 0.0
+	for i in range(segments):
+		var t := float(i) / float(segments - 1)
+		var seg_height := 0.62
+		var seg := _cylinder(0.19 - 0.06 * t, seg_height + 0.04,
+				Vector3(offset, height + seg_height * 0.5, 0.0), bark, 8)
+		seg.rotation.z = deg_to_rad(-lean)
 		root.add_child(seg)
-	# Fronds radiating from the crown.
-	for i in range(7):
-		var a := TAU * float(i) / 7.0
-		var frond := _box(Vector3(2.6, 0.06, 0.42), Vector3(0.7 + cos(a) * 1.2, 5.0, sin(a) * 1.2), leaf)
-		frond.rotation.y = a
-		frond.rotation.z = deg_to_rad(-20.0)
-		root.add_child(frond)
-	root.add_child(_sphere(0.26, Vector3(0.7, 4.95, 0), bark, 5, 8))
+		height += seg_height
+		lean += 1.8
+		offset += t * 0.09
+
+	var crown := Vector3(offset, height + 0.1, 0.0)
+	root.add_child(_sphere(0.2, crown, bark, 5, 8))
+
+	# Fronds: each is a run of shrinking blades that droops as it goes out, so
+	# it reads as a frond rather than a plank.
+	var fronds := 9
+	for i in range(fronds):
+		var a := TAU * float(i) / float(fronds) + 0.35
+		var pivot := Node3D.new()
+		pivot.position = crown
+		pivot.rotation.y = a
+		root.add_child(pivot)
+
+		var blades := 5
+		var reach := 0.0
+		var droop := 8.0
+		for b in range(blades):
+			var k := float(b) / float(blades - 1)
+			var length := 0.46 - 0.07 * k
+			reach += length * 0.94
+			var blade := _box(Vector3(length, 0.018, 0.17 - 0.09 * k),
+					Vector3(reach, -reach * reach * 0.16, 0.0),
+					leaf if i % 2 == 0 else leaf_dark)
+			blade.rotation.z = deg_to_rad(-droop)
+			pivot.add_child(blade)
+			droop += 7.0
 	return root
 
 
@@ -387,7 +432,7 @@ static func _flowers() -> Node3D:
 static func _rock() -> Node3D:
 	var root := Node3D.new()
 	root.name = "Rock"
-	var stone := material(&"stone", Color(0.52, 0.52, 0.50), 0.95)
+	var stone := MaterialLibrary.triplanar(MaterialLibrary.CONCRETE, Color(0.62, 0.62, 0.60), 0.5)
 	var a := _sphere(0.55, Vector3(0, 0.3, 0), stone, 4, 7)
 	a.scale = Vector3(1.3, 0.75, 1.0)
 	root.add_child(a)
@@ -425,7 +470,7 @@ static func _street_lamp() -> Node3D:
 static func _bench() -> Node3D:
 	var root := Node3D.new()
 	root.name = "Bench"
-	var wood := material(&"benchwood", Color(0.55, 0.36, 0.20), 0.85)
+	var wood := clad(MaterialLibrary.WOOD, Color(0.72, 0.48, 0.26), 3.0)
 	var metal := material(&"benchmetal", Color(0.22, 0.24, 0.24), 0.5, 0.6)
 	for i in range(3):
 		root.add_child(_box(Vector3(1.8, 0.07, 0.16), Vector3(0, 0.46, -0.22 + float(i) * 0.2), wood))
@@ -490,7 +535,7 @@ static func _planter() -> Node3D:
 static func _fence() -> Node3D:
 	var root := Node3D.new()
 	root.name = "Fence"
-	var wood := material(&"fencewood", Color(0.80, 0.74, 0.62), 0.9)
+	var wood := clad(MaterialLibrary.WOOD, Color(0.92, 0.86, 0.74), 3.0)
 	for i in range(6):
 		root.add_child(_box(Vector3(0.09, 0.95, 0.09), Vector3(-1.25 + float(i) * 0.5, 0.48, 0), wood))
 	for y: float in [0.35, 0.78]:
@@ -516,7 +561,7 @@ static func _container() -> Node3D:
 	var colours := [Color(0.75, 0.32, 0.25), Color(0.25, 0.45, 0.62),
 			Color(0.82, 0.68, 0.25), Color(0.35, 0.55, 0.40)]
 	var c: Color = colours[_next_variant() % colours.size()]
-	var shell := material(StringName("container_%s" % c.to_html(false)), c, 0.8, 0.3)
+	var shell := clad(MaterialLibrary.METAL, c, 2.6)
 	root.add_child(_box(Vector3(6.0, 2.6, 2.4), Vector3(0, 1.3, 0), shell))
 	# Corrugation.
 	for i in range(11):
@@ -544,7 +589,7 @@ static func _boat() -> Node3D:
 	var root := Node3D.new()
 	root.name = "Boat"
 	var hull := material(&"hull", Color(0.88, 0.88, 0.86), 0.55)
-	var deck := material(&"deck", Color(0.60, 0.44, 0.28), 0.85)
+	var deck := clad(MaterialLibrary.WOOD, Color(0.78, 0.58, 0.36), 2.6)
 	var body := _sphere(1.0, Vector3(0, 0.45, 0), hull, 5, 10)
 	body.scale = Vector3(1.35, 0.5, 3.4)
 	root.add_child(body)
@@ -854,7 +899,8 @@ static func _recycling_station() -> Node3D:
 	glow.emission = Color(0.35, 1.0, 0.45)
 	glow.emission_energy_multiplier = 2.4
 
-	root.add_child(_cylinder(2.1, 0.22, Vector3(0, 0.11, 0), panel, 16))
+	root.add_child(_cylinder(2.1, 0.22, Vector3(0, 0.11, 0),
+			clad(MaterialLibrary.PAVEMENT, Color(0.88, 0.92, 0.88), 3.0), 16))
 	root.add_child(_box(Vector3(2.4, 2.2, 1.5), Vector3(0, 1.2, 0), shell))
 	# Intake mouth the litter is pulled into.
 	root.add_child(_box(Vector3(1.5, 0.9, 0.18), Vector3(0, 1.1, 0.78),

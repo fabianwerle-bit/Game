@@ -1,0 +1,15 @@
+Poly Haven — PBR texture sets
+Source:  https://polyhaven.com/textures
+Licence: CC0 1.0 Universal (public domain dedication)
+         https://creativecommons.org/publicdomain/zero/1.0/
+
+CC0 places these works in the public domain: they may be used, modified and
+redistributed for any purpose, including commercially, with no attribution
+required. The credits below are given because it is the decent thing to do,
+not because the licence demands it.
+
+Each set is stored as albedo.jpg, normal.jpg (OpenGL convention) and orm.jpg
+(ambient occlusion in red, roughness in green, metallic in blue), at 1k.
+
+Sets used:
+  sand       aerial_beach_02            by Rob Tuytel  (albedo+normal+orm)

@@ -160,12 +160,22 @@ func _step_falling(delta: float) -> void:
 			state = State.LOOSE
 			_velocity = Vector3.ZERO
 			rotation = Vector3(0.0, rotation.y, 0.0)
+			_play_landing(0.7)
 			return
 		_bounces += 1
+		_play_landing(1.0)
 		_velocity.y = absf(_velocity.y) * BOUNCE
 		_velocity.x *= 0.7
 		_velocity.z *= 0.7
 		_spin *= 0.5
+
+
+## Glass rings, cans rattle, paper barely registers. The catalog names the
+## material; the sound bank is keyed on it.
+func _play_landing(strength: float) -> void:
+	var volume := linear_to_db(clampf(strength * minf(_velocity.length() / 5.0, 1.0), 0.05, 1.0))
+	GameAudio.sfx(StringName("litter_%s" % kind.sound), global_position,
+			randf_range(0.9, 1.15), volume)
 
 
 func _step_loose(delta: float) -> void:

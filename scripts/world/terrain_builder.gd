@@ -38,14 +38,18 @@ static func build_ground(island: IslandLayout) -> Node3D:
 			var b := _vertex(island, next_seg, t0)
 			var c := _vertex(island, next_seg, t1)
 			var d := _vertex(island, seg, t1)
+			# Wound so the faces point up. Getting this backwards makes the
+			# whole island invisible under cull_back and turns its normals
+			# upside down, while still looking fine in a wireframe.
 			if ring == 0:
 				# Innermost ring closes to a single centre vertex.
-				_tri(st, island, Vector3(0, IslandLayout.GROUND_Y, 0), c, d)
+				_tri(st, island, Vector3(0, IslandLayout.GROUND_Y, 0), d, c)
 			else:
-				_tri(st, island, a, b, c)
-				_tri(st, island, a, c, d)
+				_tri(st, island, a, c, b)
+				_tri(st, island, a, d, c)
 
 	st.generate_normals()
+	st.generate_tangents()
 	var mesh := st.commit()
 
 	var mi := MeshInstance3D.new()
@@ -60,9 +64,8 @@ static func build_ground(island: IslandLayout) -> Node3D:
 	body.collision_mask = 0
 	var shape := CollisionShape3D.new()
 	var trimesh := mesh.create_trimesh_shape()
-	# One-sided by default, which lets a fast body tunnel through the ground
-	# from above whenever the triangle winding faces the other way. The island
-	# is walked on from both sides of nothing, so collide with both faces.
+	# Kept on as a belt-and-braces guard: a one-sided ground lets a fast body
+	# tunnel through it, and the failure is silent.
 	trimesh.backface_collision = true
 	shape.shape = trimesh
 	body.add_child(shape)
@@ -93,38 +96,63 @@ static func _tri(st: SurfaceTool, island: IslandLayout, a: Vector3, b: Vector3, 
 		st.add_vertex(v)
 
 
-## Vertex colour blends grass, sand and rock by height and district, which is
-## what stops the island reading as one flat green disc.
+## Vertex colour drives the ground shader: RGB is a tint, alpha is how sandy
+## the spot is. The shader blends the grass and sand texture sets by that
+## alpha, so the shoreline changes material and not merely colour.
 static func _ground_colour(island: IslandLayout, v: Vector3) -> Color:
-	var grass := Color(0.36, 0.55, 0.26)
-	var sand := Color(0.88, 0.81, 0.60)
-	var rock := Color(0.48, 0.47, 0.45)
-
+	var tint := Color(1.0, 1.0, 1.0)
 	var here := Vector2(v.x, v.z)
 	var district := island.district_at(here)
+	# The town and the quay wear their grass down to something greyer.
 	if district == IslandLayout.CENTRE or district == IslandLayout.HARBOUR:
-		grass = Color(0.46, 0.48, 0.42)
+		tint = Color(0.86, 0.88, 0.82)
 
-	# Sand takes over as the ground drops towards the water.
-	var drop := clampf((IslandLayout.GROUND_Y - v.y) / (IslandLayout.GROUND_Y + 1.1), 0.0, 1.0)
-	var beachiness := smoothstep(0.02, 0.5, drop)
+	# How far out towards the coast this point is, 0 in the middle and 1 at the
+	# waterline. Derived from the coastline itself rather than from height, so
+	# the sand band follows the shore across the flat plateau too — going by
+	# height alone left the beach covered in grass.
+	var coast_radius := maxf(island._coast_point(here.angle()).length(), 0.001)
+	var out := clampf(here.length() / coast_radius, 0.0, 1.0)
+	var sandiness := smoothstep(SHORE_START - 0.06, 0.99, out)
+	# The beach district is sand well inland, not just at the water's edge.
 	if district == IslandLayout.BEACH:
-		beachiness = maxf(beachiness, smoothstep(0.0, 0.25, drop) * 0.9)
+		sandiness = maxf(sandiness, smoothstep(BEACH_START - 0.22, BEACH_START + 0.1, out))
+	# And the ground turns sandy as it drops away anywhere.
+	var drop := clampf((IslandLayout.GROUND_Y - v.y) / (IslandLayout.GROUND_Y + 1.1), 0.0, 1.0)
+	sandiness = maxf(sandiness, smoothstep(0.02, 0.4, drop))
 
-	var colour := grass.lerp(sand, beachiness)
-	# The north-west headland is rocky rather than sandy.
-	if here.angle() < -1.9 and here.angle() > -2.8 and here.length() > 70.0:
-		colour = colour.lerp(rock, 0.6)
-	return colour
+	# The north-west headland is rock rather than sand.
+	var bearing := here.angle()
+	if bearing < -1.9 and bearing > -2.8 and here.length() > 70.0:
+		tint = tint.lerp(Color(0.62, 0.61, 0.58), 0.6)
+
+	tint.a = sandiness
+	return tint
 
 
-static func _ground_material() -> StandardMaterial3D:
-	var m := StandardMaterial3D.new()
-	m.vertex_color_use_as_albedo = true
-	m.albedo_color = Color.WHITE
-	m.roughness = 0.94
-	m.metallic = 0.0
-	return m
+## Ground material. Uses the grass and sand PBR sets when they are present,
+## and falls back to the plain vertex-coloured surface when they are not, so
+## the island still builds on a checkout that has not run the asset fetch.
+static func _ground_material() -> Material:
+	if not (MaterialLibrary.has_set(MaterialLibrary.GRASS)
+			and MaterialLibrary.has_set(MaterialLibrary.SAND)):
+		var plain := StandardMaterial3D.new()
+		plain.vertex_color_use_as_albedo = true
+		plain.albedo_color = Color(0.42, 0.58, 0.32)
+		plain.roughness = 0.94
+		return plain
+
+	var shader := ShaderMaterial.new()
+	shader.shader = load("res://shaders/terrain.gdshader")
+	var grass := MaterialLibrary.maps(MaterialLibrary.GRASS)
+	var sand := MaterialLibrary.maps(MaterialLibrary.SAND)
+	for pair: Array in [["grass", grass], ["sand", sand]]:
+		var prefix: String = pair[0]
+		var set: Dictionary = pair[1]
+		shader.set_shader_parameter("%s_albedo" % prefix, set.get("albedo"))
+		shader.set_shader_parameter("%s_normal" % prefix, set.get("normal"))
+		shader.set_shader_parameter("%s_orm" % prefix, set.get("orm"))
+	return shader
 
 
 ## The sea: a large plane with a scrolling normal ripple.
@@ -186,9 +214,14 @@ static func build_roads(roads: RoadGraph) -> Node3D:
 				_ribbon(markings, a.lerp(b, t0), a.lerp(b, t1), right, -0.16, 0.16,
 						IslandLayout.GROUND_Y + ROAD_LIFT + 0.01)
 
-	root.add_child(_surface("Tarmac", tarmac, Color(0.20, 0.20, 0.22), 0.88))
-	root.add_child(_surface("Pavement", paving, Color(0.66, 0.64, 0.61), 0.92))
-	root.add_child(_surface("Markings", markings, Color(0.92, 0.90, 0.80), 0.7))
+	root.add_child(_surface("Tarmac", tarmac,
+			MaterialLibrary.surface(MaterialLibrary.ROAD, Color(0.62, 0.62, 0.66), 0.34)))
+	root.add_child(_surface("Pavement", paving,
+			MaterialLibrary.surface(MaterialLibrary.PAVEMENT, Color(0.92, 0.90, 0.88), 0.5)))
+	var marking_material := StandardMaterial3D.new()
+	marking_material.albedo_color = Color(0.94, 0.92, 0.82)
+	marking_material.roughness = 0.7
+	root.add_child(_surface("Markings", markings, marking_material))
 
 	# Kerbs are collidable so the slime and the crowd stay off the carriageway
 	# edges in a way the player can feel.
@@ -211,14 +244,14 @@ static func _ribbon(st: SurfaceTool, a: Vector2, b: Vector2, right: Vector2,
 		st.add_vertex(v)
 
 
-static func _surface(name: String, st: SurfaceTool, colour: Color, roughness: float) -> MeshInstance3D:
+static func _surface(name: String, st: SurfaceTool, material: Material) -> MeshInstance3D:
+	# Normals first: tangents are derived from them, and asking the other way
+	# round fails with an ARRAY_FORMAT_NORMAL error.
 	st.generate_normals()
+	st.generate_tangents()
 	var mi := MeshInstance3D.new()
 	mi.name = name
 	mi.mesh = st.commit()
-	var m := StandardMaterial3D.new()
-	m.albedo_color = colour
-	m.roughness = roughness
-	mi.material_override = m
+	mi.material_override = material
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	return mi

@@ -121,6 +121,8 @@ func _on_round_ended(_reason: StringName) -> void:
 	var was_record := false
 	if GameProfile.instance != null:
 		was_record = GameProfile.instance.submit_round(world.rules)
+	if was_record:
+		GameAudio.ui(&"record")
 
 	game_over = GameOverScreen.new()
 	game_over.name = "GameOver"

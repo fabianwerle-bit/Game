@@ -142,9 +142,10 @@ func missing_sounds() -> Array:
 # Null-safe: with no autoload (a headless test) these do nothing rather than
 # crashing the caller.
 
-static func sfx(sound: StringName, position: Vector3, pitch: float = 1.0) -> void:
+static func sfx(sound: StringName, position: Vector3, pitch: float = 1.0,
+		volume_db: float = 0.0) -> void:
 	if instance != null:
-		instance.play_3d(sound, position, pitch)
+		instance.play_3d(sound, position, pitch, volume_db)
 
 
 static func ui(sound: StringName, pitch: float = 1.0) -> void:

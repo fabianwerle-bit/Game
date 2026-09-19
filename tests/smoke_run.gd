@@ -156,6 +156,14 @@ func _verify_world_built(world: World) -> void:
 
 	var ground := world.find_child("Ground", false, false)
 	_check(ground != null, "ground was not built")
+	# When the CC0 texture sets are present they must actually be in use, not
+	# merely downloaded. A silently-plain island is the failure this catches.
+	if MaterialLibrary.has_set(MaterialLibrary.GRASS):
+		var surface := ground.find_child("Surface", false, false) as MeshInstance3D
+		_check(surface != null and surface.material_override is ShaderMaterial,
+				"grass textures are present but the ground is not using them")
+		_check(MaterialLibrary.missing_slots().is_empty(),
+				"texture sets missing: %s" % [MaterialLibrary.missing_slots()])
 	var city := world.find_child("City", false, false)
 	_check(city != null, "city was not built")
 	if city != null:
@@ -232,6 +240,9 @@ func _verify_round(world: World) -> void:
 	print("  on the ground:     %.0f%%" % (float(_floor_frames) / float(maxi(_moving_frames, 1)) * 100.0))
 	print("  nodes in tree:     %d" % _peak_nodes)
 	print("  placeholder props: %d" % AssetLibrary.placeholder_report().size())
+	print("  texture sets:      %d of %d present"
+			% [MaterialLibrary.SLOTS.size() - MaterialLibrary.missing_slots().size(),
+			   MaterialLibrary.SLOTS.size()])
 
 
 func _finish() -> void:

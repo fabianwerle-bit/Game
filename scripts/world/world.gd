@@ -302,6 +302,7 @@ func _update_crowd(delta: float) -> void:
 		var distance := person.global_position.distance_to(here)
 		# Distant people keep walking but stop being posed limb by limb.
 		person.set_simplified(distance > cutoff)
+		person.set_audible(distance < 14.0)
 		person.visible = distance < GameSettings.draw_distance()
 		person.step(delta, here, speed)
 

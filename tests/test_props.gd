@@ -185,9 +185,11 @@ static func _test_determinism(t: TestSupport) -> void:
 
 
 static func _first_albedo(node: Node) -> Color:
+	# Textured surfaces are ORMMaterial3D, flat ones StandardMaterial3D; both
+	# derive from BaseMaterial3D and both carry the tint in albedo_color.
 	for mi: MeshInstance3D in _all_meshes(node):
-		if mi.material_override is StandardMaterial3D:
-			return (mi.material_override as StandardMaterial3D).albedo_color
+		if mi.material_override is BaseMaterial3D:
+			return (mi.material_override as BaseMaterial3D).albedo_color
 	return Color.BLACK
 
 

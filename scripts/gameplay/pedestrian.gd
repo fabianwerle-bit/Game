@@ -53,6 +53,8 @@ var _held_model: Node3D
 
 var _rng := RandomNumberGenerator.new()
 var _simplified: bool = false
+var _audible: bool = false
+var _last_step_phase: float = 0.0
 
 
 func _ready() -> void:
@@ -117,6 +119,12 @@ func _take_item() -> void:
 ## keeps moving, but they stop costing anything to pose.
 func set_simplified(value: bool) -> void:
 	_simplified = value
+
+
+## Footsteps are only worth playing for people within earshot; a whole crowd
+## stepping at once is noise, not atmosphere.
+func set_audible(value: bool) -> void:
+	_audible = value
 
 
 func step(delta: float, slime_position: Vector3, slime_speed: float) -> void:
@@ -253,6 +261,13 @@ func _animate(delta: float) -> void:
 	var moving := state == State.WALK or state == State.REACT
 	var target_swing := 1.0 if moving else 0.0
 	_bob += delta * _speed * 4.6 * target_swing
+
+	# One footstep per half cycle, timed to the leg actually reaching forward.
+	if _audible and target_swing > 0.0:
+		var phase := fposmod(_bob, PI)
+		if phase < _last_step_phase:
+			GameAudio.sfx(&"footstep", global_position, randf_range(0.9, 1.1), -14.0)
+		_last_step_phase = phase
 
 	var swing := sin(_bob) * 0.55 * target_swing
 	if _leg_l != null:

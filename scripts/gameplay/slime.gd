@@ -116,12 +116,17 @@ func _build_face() -> void:
 	var white := StandardMaterial3D.new()
 	white.albedo_color = Color(0.99, 0.99, 0.97)
 	white.roughness = 0.25
+	# Shadeless, or the gel body's own lighting washes the face out until the
+	# eyes read as two faint smudges.
+	white.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	var pupil_mat := StandardMaterial3D.new()
-	pupil_mat.albedo_color = Color(0.06, 0.07, 0.09)
+	pupil_mat.albedo_color = Color(0.05, 0.06, 0.08)
 	pupil_mat.roughness = 0.15
+	pupil_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	var mouth_mat := StandardMaterial3D.new()
-	mouth_mat.albedo_color = Color(0.20, 0.09, 0.12)
+	mouth_mat.albedo_color = Color(0.22, 0.08, 0.12)
 	mouth_mat.roughness = 0.5
+	mouth_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 
 	for side: float in [-1.0, 1.0]:
 		var eye := MeshInstance3D.new()
@@ -132,19 +137,21 @@ func _build_face() -> void:
 		eye_mesh.rings = 9
 		eye.mesh = eye_mesh
 		eye.material_override = white
-		eye.position = Vector3(side * 0.34, 0.30, 0.74)
+		# Just proud of the surface. Set any deeper and the gel swallows them:
+		# the body is a unit sphere here, so anything below ~0.9 is inside it.
+		eye.position = Vector3(side * 0.33, 0.28, 0.86)
 		eye.name = "Eye%s" % ("L" if side < 0.0 else "R")
 		_face_root.add_child(eye)
 
 		var pupil := MeshInstance3D.new()
 		var pupil_mesh := SphereMesh.new()
-		pupil_mesh.radius = 0.15
-		pupil_mesh.height = 0.30
+		pupil_mesh.radius = 0.17
+		pupil_mesh.height = 0.34
 		pupil_mesh.radial_segments = 10
 		pupil_mesh.rings = 7
 		pupil.mesh = pupil_mesh
 		pupil.material_override = pupil_mat
-		pupil.position = Vector3(side * 0.34, 0.28, 0.93)
+		pupil.position = Vector3(side * 0.33, 0.26, 1.02)
 		pupil.name = "Pupil%s" % ("L" if side < 0.0 else "R")
 		_face_root.add_child(pupil)
 
@@ -156,7 +163,7 @@ func _build_face() -> void:
 	mouth_mesh.rings = 7
 	mouth.mesh = mouth_mesh
 	mouth.material_override = mouth_mat
-	mouth.position = Vector3(0, -0.18, 0.88)
+	mouth.position = Vector3(0, -0.20, 1.0)
 	mouth.scale = Vector3(1.0, 0.45, 0.35)
 	mouth.name = "Mouth"
 	_face_root.add_child(mouth)
