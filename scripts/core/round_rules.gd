@@ -40,7 +40,7 @@ const CHAOS_RISE := 0.055
 const CHAOS_FALL := 0.09
 
 ## Ground litter weight a phase tolerates before chaos starts climbing.
-const CHAOS_BUDGET := [14.0, 20.0, 26.0, 32.0]
+const CHAOS_BUDGET := [34.0, 46.0, 58.0, 70.0]
 
 const REASON_TIME := &"time"
 const REASON_CHAOS := &"chaos"

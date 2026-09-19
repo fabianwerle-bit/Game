@@ -9,6 +9,7 @@ extends SceneTree
 ## does not compile has to report as a failure, not hang the runner.
 
 const SUITES := [
+	"res://tests/test_compiles.gd",
 	"res://tests/test_round_rules.gd",
 	"res://tests/test_island.gd",
 	"res://tests/test_slime.gd",

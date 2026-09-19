@@ -1,6 +1,10 @@
+class_name GameProfile
 extends Node
 
-## Persistent progress and scene flow. Autoloaded as `Game`.
+## Persistent progress and scene flow. Autoloaded as `Game`; reached from code
+## through `GameProfile.instance` so it resolves outside the editor too.
+
+static var instance: GameProfile
 
 signal record_changed(best_score: int)
 
@@ -26,6 +30,7 @@ var last_was_record: bool = false
 
 
 func _ready() -> void:
+	instance = self
 	load_profile()
 
 

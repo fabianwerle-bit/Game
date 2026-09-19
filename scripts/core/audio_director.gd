@@ -1,6 +1,11 @@
+class_name GameAudio
 extends Node
 
-## Sound effect pool, ambience and adaptive music. Autoloaded as `AudioDirector`.
+## Sound effect pool, ambience and adaptive music. Autoloaded as
+## `AudioDirector`; called through the static wrappers at the bottom so game
+## code compiles and runs with or without the autoload present.
+
+static var instance: GameAudio
 ##
 ## Streams are looked up by name under `res://assets/audio/`. Anything missing is
 ## reported once and then silently skipped, so a missing file is visible in the
@@ -20,6 +25,7 @@ var _music_tension: float = 0.0
 
 
 func _ready() -> void:
+	instance = self
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_ensure_buses()
 	for i in range(SFX_VOICES):
@@ -130,3 +136,32 @@ func set_tension(value: float) -> void:
 
 func missing_sounds() -> Array:
 	return _missing.keys()
+
+
+# --- static wrappers -------------------------------------------------------
+# Null-safe: with no autoload (a headless test) these do nothing rather than
+# crashing the caller.
+
+static func sfx(sound: StringName, position: Vector3, pitch: float = 1.0) -> void:
+	if instance != null:
+		instance.play_3d(sound, position, pitch)
+
+
+static func ui(sound: StringName, pitch: float = 1.0) -> void:
+	if instance != null:
+		instance.play_ui(sound, pitch)
+
+
+static func music(sound: StringName) -> void:
+	if instance != null:
+		instance.play_music(sound)
+
+
+static func ambience(sound: StringName) -> void:
+	if instance != null:
+		instance.play_ambience(sound)
+
+
+static func tension(value: float) -> void:
+	if instance != null:
+		instance.set_tension(value)

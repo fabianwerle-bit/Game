@@ -1,7 +1,15 @@
+class_name GameSettings
 extends Node
 
 ## Persisted player settings: volumes, graphics tier, control feel.
-## Autoloaded as `Settings`.
+##
+## Autoloaded as `Settings`. Game code goes through the static helpers rather
+## than the autoload name, because an autoload is not a compile-time identifier
+## outside the editor — the headless test run cannot see it. The helpers fall
+## back to sensible defaults when no instance exists, so the budgets can be
+## asked for from a test.
+
+static var instance: GameSettings
 
 signal changed
 
@@ -17,12 +25,14 @@ var muted: bool = false
 var graphics_tier: int = TIER_HIGH
 var joystick_left_handed: bool = false
 var haptics: bool = true
+var slime_skin: int = 0
 
 ## Set once at boot when the device is too weak for the chosen tier.
 var auto_downgraded: bool = false
 
 
 func _ready() -> void:
+	instance = self
 	load_settings()
 	apply_audio()
 
@@ -37,6 +47,7 @@ func load_settings() -> void:
 	graphics_tier = clampi(int(cfg.get_value("video", "tier", graphics_tier)), TIER_LOW, TIER_HIGH)
 	joystick_left_handed = bool(cfg.get_value("input", "left_handed", joystick_left_handed))
 	haptics = bool(cfg.get_value("input", "haptics", haptics))
+	slime_skin = int(cfg.get_value("player", "skin", slime_skin))
 
 
 func save_settings() -> void:
@@ -47,6 +58,7 @@ func save_settings() -> void:
 	cfg.set_value("video", "tier", graphics_tier)
 	cfg.set_value("input", "left_handed", joystick_left_handed)
 	cfg.set_value("input", "haptics", haptics)
+	cfg.set_value("player", "skin", slime_skin)
 	cfg.save(PATH)
 
 
@@ -92,21 +104,35 @@ func _apply_bus(bus_name: StringName, volume: float) -> void:
 
 ## Caps used by the world streamer so a weak phone gets a smaller, but still
 ## complete, city rather than a stuttering one.
-func crowd_budget() -> int:
-	return [14, 24, 34][graphics_tier]
+func set_skin(index: int) -> void:
+	slime_skin = index
+	save_settings()
+	changed.emit()
 
 
-func traffic_budget() -> int:
-	return [8, 13, 18][graphics_tier]
+static func skin() -> int:
+	return instance.slime_skin if instance != null else 0
 
 
-func shadows_enabled() -> bool:
-	return graphics_tier >= TIER_MEDIUM
+static func tier() -> int:
+	return instance.graphics_tier if instance != null else TIER_HIGH
 
 
-func particle_scale() -> float:
-	return [0.45, 0.75, 1.0][graphics_tier]
+static func crowd_budget() -> int:
+	return [14, 24, 34][tier()]
 
 
-func draw_distance() -> float:
-	return [95.0, 140.0, 190.0][graphics_tier]
+static func traffic_budget() -> int:
+	return [8, 13, 18][tier()]
+
+
+static func shadows_enabled() -> bool:
+	return tier() >= TIER_MEDIUM
+
+
+static func particle_scale() -> float:
+	return [0.45, 0.75, 1.0][tier()]
+
+
+static func draw_distance() -> float:
+	return [95.0, 140.0, 190.0][tier()]
