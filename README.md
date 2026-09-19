@@ -69,7 +69,10 @@ is an honest account of both sides.
 
 ## Installing the APK
 
-`build/SlimeCleanup.apk` is a signed, installable release build.
+A signed, installable release build is committed at
+[`dist/SlimeCleanup-0.3.0.apk`](dist/SlimeCleanup-0.3.0.apk) — use the
+**Download raw file** button on that page. `dist/SlimeCleanup-0.3.0.apk.sha256`
+carries its checksum.
 
 - Android 7.0 (API 24) or newer, arm64, OpenGL ES 3.0
 - Portrait only, and it asks for **no permissions at all** — no internet, no
