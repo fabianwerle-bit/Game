@@ -53,6 +53,13 @@ TEXTURE_SLOTS: dict[str, list[str]] = {
 # Godot's ORM layout.
 MAP_KEYS = {"Diffuse": "albedo", "nor_gl": "normal", "arm": "orm"}
 
+# Looping background music. CC0, from OpenGameArt.
+MUSIC = {
+    "theme": ("https://opengameart.org/sites/default/files/enchanted%20tiki%2086.mp3",
+              "Enchanted Tiki 86", "Kevin MacLeod / incompetech, released CC0 on OpenGameArt",
+              "https://opengameart.org/content/enchanted-tiki-86"),
+}
+
 KENNEY_PACKS = {
     "impact": "https://kenney.nl/media/pages/assets/impact-sounds/"
               "87b4ddecda-1677589768/kenney_impact-sounds.zip",
@@ -227,9 +234,47 @@ Game sound name, source pack and original file:
 """
 
 
+OGA_LICENCE = """OpenGameArt - background music
+Licence: CC0 1.0 Universal (public domain dedication)
+         https://creativecommons.org/publicdomain/zero/1.0/
+
+CC0 places these works in the public domain: they may be used, modified and
+redistributed for any purpose, including commercially, with no attribution
+required. The credit below is given voluntarily.
+
+Tracks used:
+"""
+
+
 def _write_license(filename: str, header: str, lines: list[str]) -> None:
     LICENSE_DIR.mkdir(parents=True, exist_ok=True)
     (LICENSE_DIR / filename).write_text(header + "\n".join(f"  {line}" for line in lines) + "\n")
+
+
+def fetch_music(force: bool) -> tuple[list[str], list[str]]:
+    """Download the looping music tracks."""
+    AUDIO_DIR.mkdir(parents=True, exist_ok=True)
+    fetched: list[str] = []
+    failed: list[str] = []
+    credits: list[str] = []
+    for name, (url, title, author, page) in MUSIC.items():
+        out = AUDIO_DIR / f"{name}.mp3"
+        if out.exists() and not force:
+            print(f"  {name:18} already present, skipping")
+            credits.append(f"{name:10} {title} - {author} ({page})")
+            continue
+        try:
+            out.write_bytes(fetch(url, timeout=300))
+        except Exception as error:
+            failed.append(f"{name}: {error}")
+            print(f"  {name:18} FAILED - {error}")
+            continue
+        credits.append(f"{name:10} {title} - {author} ({page})")
+        fetched.append(name)
+        print(f"  {name:18} {title}")
+    if credits:
+        _write_license("opengameart-music.txt", OGA_LICENCE, credits)
+    return fetched, failed
 
 
 def report() -> None:
@@ -238,6 +283,9 @@ def report() -> None:
         directory = TEX_DIR / slot
         maps = sorted(p.stem for p in directory.glob("*.jpg")) if directory.exists() else []
         print(f"  {slot:9} {'+'.join(maps) if maps else 'MISSING'}")
+    print("Music:")
+    for name in MUSIC:
+        print(f"  {name:18} {'ok' if (AUDIO_DIR / f'{name}.mp3').exists() else 'MISSING'}")
     print("Sounds:")
     for name in SOUND_MAP:
         print(f"  {name:18} {'ok' if (AUDIO_DIR / f'{name}.ogg').exists() else 'MISSING'}")
@@ -263,6 +311,9 @@ def main() -> int:
     if not args.skip_audio:
         print("Kenney audio (CC0):")
         _, failed = fetch_audio(args.force)
+        failures += failed
+        print("OpenGameArt music (CC0):")
+        _, failed = fetch_music(args.force)
         failures += failed
 
     print()

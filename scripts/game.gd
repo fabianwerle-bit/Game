@@ -45,7 +45,9 @@ func _ready() -> void:
 	_ui_layer.add_child(menu)
 
 	GameAudio.music(&"theme")
-	GameAudio.ambience(&"town")
+	# No ambience track yet: AudioDirector supports one, but there is no CC0
+	# town or seaside loop in the asset set, so nothing is asked for rather
+	# than warning about a missing file on every boot.
 
 
 func _on_stick_moved(value: Vector2) -> void:

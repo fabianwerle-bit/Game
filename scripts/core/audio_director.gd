@@ -110,8 +110,21 @@ func play_music(sound: StringName) -> void:
 		return
 	if _music.stream == stream and _music.playing:
 		return
+	_loop(stream)
 	_music.stream = stream
 	_music.play()
+
+
+## Music and ambience have to loop. The importer leaves looping off by default
+## for mp3 and ogg, so set it on the stream rather than relying on the import
+## settings of a file that gets re-fetched.
+func _loop(stream: AudioStream) -> void:
+	if stream is AudioStreamMP3:
+		(stream as AudioStreamMP3).loop = true
+	elif stream is AudioStreamOggVorbis:
+		(stream as AudioStreamOggVorbis).loop = true
+	elif stream is AudioStreamWAV:
+		(stream as AudioStreamWAV).loop_mode = AudioStreamWAV.LOOP_FORWARD
 
 
 func stop_music() -> void:
@@ -124,6 +137,7 @@ func play_ambience(sound: StringName) -> void:
 		return
 	if _ambience.stream == stream and _ambience.playing:
 		return
+	_loop(stream)
 	_ambience.stream = stream
 	_ambience.play()
 

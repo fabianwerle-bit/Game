@@ -58,9 +58,9 @@ is an honest account of both sides.
 - **Characters are not rigged.** Pedestrians are articulated figures posed by
   code through a walk cycle. A skinned, animated character would go straight
   in as `assets/models/pedestrian.glb`.
-- **No background music.** There is an end-of-round jingle and a record sting,
-  but no looping soundtrack. The brief rules out synthesised filler, so rather
-  than fake one, the slot is empty and documented.
+- **No ambience track.** There is looping music and a full set of effects, but
+  no town or seaside atmosphere loop — no CC0 one fit, and the brief rules out
+  synthesised filler. `AudioDirector` supports one; the slot is simply empty.
 - **Never run on a real phone.** The APK builds, signs and verifies, and the
   exported build boots and renders correctly under software rendering here —
   but no physical Android device has run it. Expect to find device-specific
@@ -150,6 +150,7 @@ python3 tools/fetch_assets.py --report # what is present
 - **Sound**: fifteen effects from [Kenney](https://kenney.nl) — pickup, drop-
   off, impacts, footsteps, interface, a per-material sound for each kind of
   litter, and two jingles.
+- **Music**: a looping theme from [OpenGameArt](https://opengameart.org).
 
 Provenance and licence for every file is recorded under `assets/licenses/`.
 
@@ -178,6 +179,13 @@ Two contracts the code relies on:
 
 These are asserted by `tests/test_props.gd`, so a rename that breaks them
 fails the build rather than quietly stopping the wheels.
+
+Poly Haven also publishes CC0 *models*, and a few are usable here — a bench at
+630 triangles, a barrel at 2.7k, a bin at 14k. Most are not: their street lamp
+is 30k triangles against perhaps fifty instances, their boulder 124k, and
+`island_tree_01` is 3.7 million triangles in a 63 MB download. They are also
+photoscanned, which would sit badly next to the stand-ins. A coherent stylized
+kit for the whole world is the better answer than a handful of photoreal props.
 
 ## Layout
 

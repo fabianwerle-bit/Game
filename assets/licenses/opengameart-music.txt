@@ -1,0 +1,10 @@
+OpenGameArt - background music
+Licence: CC0 1.0 Universal (public domain dedication)
+         https://creativecommons.org/publicdomain/zero/1.0/
+
+CC0 places these works in the public domain: they may be used, modified and
+redistributed for any purpose, including commercially, with no attribution
+required. The credit below is given voluntarily.
+
+Tracks used:
+  theme      Enchanted Tiki 86 - Kevin MacLeod / incompetech, released CC0 on OpenGameArt (https://opengameart.org/content/enchanted-tiki-86)
