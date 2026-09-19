@@ -6,3 +6,9 @@ toolchain/
 
 # Compiled classes from the JVM tests
 *.class
+
+# Godot
+.godot/
+/android/
+*.translation
+export_presets.cfg
