@@ -1,0 +1,8 @@
+# Build output
+build/
+
+# Android SDK / compiler downloaded by tools/setup_android.py
+toolchain/
+
+# Compiled classes from the JVM tests
+*.class
