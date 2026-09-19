@@ -9,6 +9,14 @@ extends RefCounted
 
 const SEED := 20260917
 
+## Overall size of the island. Everything - the coastline, the districts and
+## the road graph - is multiplied by this, so the whole place shrinks or grows
+## as one piece and the geometry tests keep checking a consistent world.
+## At 0.75 the island is roughly 160 m across: about fifteen seconds of rolling
+## from coast to coast, which keeps the districts on top of each other instead
+## of separated by empty ground.
+const SCALE := 0.75
+
 ## Districts, in the order the map legend lists them.
 const CENTRE := &"centre"
 const SUBURB := &"suburb"
@@ -57,11 +65,11 @@ func _init() -> void:
 
 func _build_districts() -> void:
 	districts = [
-		District.new(CENTRE, "Stadtzentrum", Vector2(0, 0), 40.0, Color(0.85, 0.72, 0.45)),
-		District.new(SUBURB, "Wohngebiet", Vector2(-64, 6), 38.0, Color(0.74, 0.82, 0.55)),
-		District.new(PARK, "Stadtpark", Vector2(58, 26), 36.0, Color(0.46, 0.74, 0.44)),
-		District.new(HARBOUR, "Hafen", Vector2(-22, -58), 32.0, Color(0.55, 0.66, 0.78)),
-		District.new(BEACH, "Strand", Vector2(20, 76), 34.0, Color(0.95, 0.88, 0.66)),
+		District.new(CENTRE, "Stadtzentrum", Vector2(0, 0) * SCALE, 40.0 * SCALE, Color(0.85, 0.72, 0.45)),
+		District.new(SUBURB, "Wohngebiet", Vector2(-64, 6) * SCALE, 38.0 * SCALE, Color(0.74, 0.82, 0.55)),
+		District.new(PARK, "Stadtpark", Vector2(58, 26) * SCALE, 36.0 * SCALE, Color(0.46, 0.74, 0.44)),
+		District.new(HARBOUR, "Hafen", Vector2(-22, -58) * SCALE, 32.0 * SCALE, Color(0.55, 0.66, 0.78)),
+		District.new(BEACH, "Strand", Vector2(20, 76) * SCALE, 34.0 * SCALE, Color(0.95, 0.88, 0.66)),
 	]
 
 
@@ -87,7 +95,7 @@ func _coast_point(angle: float) -> Vector2:
 	r += 2.0 * sin(angle * 8.0 - 0.4)
 
 	# Harbour inlet: a narrow notch cutting in from the north (-Z).
-	r -= 26.0 * _bump(angle, -PI * 0.5, 0.16)
+	r -= 17.0 * _bump(angle, -PI * 0.5, 0.16)
 	# Sheltering mole on the west side of that inlet.
 	r += 14.0 * _bump(angle, -PI * 0.5 - 0.34, 0.09)
 
@@ -100,7 +108,7 @@ func _coast_point(angle: float) -> Vector2:
 	# Rocky headland in the north west.
 	r += 11.0 * _bump(angle, -2.35, 0.14)
 
-	return Vector2(cos(angle), sin(angle)) * r
+	return Vector2(cos(angle), sin(angle)) * r * SCALE
 
 
 ## Smooth 0..1 bump centred on `centre_angle`, `width` in radians.

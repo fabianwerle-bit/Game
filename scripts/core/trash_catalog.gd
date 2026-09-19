@@ -34,7 +34,7 @@ class Kind extends RefCounted:
 
 
 ## How much litter the slime can hold before it has to visit a station.
-const CAPACITY_MAX := 20
+const CAPACITY_MAX := 10
 
 static var _kinds: Dictionary = {}
 static var _order: Array[StringName] = []

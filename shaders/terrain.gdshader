@@ -1,26 +1,19 @@
 shader_type spatial;
-render_mode blend_mix, depth_draw_opaque, cull_back, diffuse_burley, specular_schlick_ggx;
+render_mode blend_mix, depth_draw_opaque, cull_back, diffuse_lambert, specular_disabled;
 
-// Island ground.
+// Island ground, flat and bright.
 //
-// Blends two PBR sets — grass inland, sand along the shore — using the vertex
-// colour the mesh was built with: RGB carries a tint (rock on the headland,
-// worn grey through the town), alpha carries how sandy the spot is. Blending
-// albedo, normal and ORM together means the beach actually changes how the
-// surface catches light, rather than just going a different colour.
+// No photo textures: the look is toy-town, and a photoscanned lawn fights it.
+// Colour comes from the vertex colour the mesh was built with - RGB is the
+// ground tint, alpha is how sandy the spot is - plus a gentle large-scale
+// variation so a wide lawn is not one dead flat fill.
+//
+// Lambert diffuse with specular off keeps the shading poster-like rather than
+// glossy, which is what makes the palette read as cartoon.
 
-uniform sampler2D grass_albedo : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
-uniform sampler2D grass_normal : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
-uniform sampler2D grass_orm : hint_default_white, filter_linear_mipmap_anisotropic, repeat_enable;
-
-uniform sampler2D sand_albedo : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
-uniform sampler2D sand_normal : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
-uniform sampler2D sand_orm : hint_default_white, filter_linear_mipmap_anisotropic, repeat_enable;
-
-uniform float texture_scale = 0.34;
-// A second, much larger sample breaks up the obvious tiling on open ground.
-uniform float macro_scale = 0.037;
-uniform float macro_strength : hint_range(0.0, 1.0) = 0.35;
+uniform vec3 sand_colour : source_color = vec3(0.98, 0.88, 0.62);
+uniform float variation : hint_range(0.0, 0.5) = 0.06;
+uniform float variation_scale = 0.035;
 
 // Raised by the weather system when it rains.
 uniform float wetness : hint_range(0.0, 1.0) = 0.0;
@@ -33,33 +26,28 @@ void vertex() {
 	v_colour = COLOR;
 }
 
+// Cheap value noise, enough to break up a flat field.
+float wobble(vec2 p) {
+	vec2 i = floor(p);
+	vec2 f = fract(p);
+	f = f * f * (3.0 - 2.0 * f);
+	float a = fract(sin(dot(i, vec2(12.9898, 78.233))) * 43758.5453);
+	float b = fract(sin(dot(i + vec2(1.0, 0.0), vec2(12.9898, 78.233))) * 43758.5453);
+	float c = fract(sin(dot(i + vec2(0.0, 1.0), vec2(12.9898, 78.233))) * 43758.5453);
+	float d = fract(sin(dot(i + vec2(1.0, 1.0), vec2(12.9898, 78.233))) * 43758.5453);
+	return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+}
+
 void fragment() {
-	vec2 uv = v_world.xz * texture_scale;
-	vec2 macro_uv = v_world.xz * macro_scale;
 	float sandiness = clamp(v_colour.a, 0.0, 1.0);
+	vec3 base = mix(v_colour.rgb, sand_colour, sandiness);
 
-	vec3 grass_c = texture(grass_albedo, uv).rgb;
-	vec3 sand_c = texture(sand_albedo, uv).rgb;
-	vec3 albedo = mix(grass_c, sand_c, sandiness);
+	// Soft patches, so the ground has life without pattern or detail noise.
+	float n = wobble(v_world.xz * variation_scale);
+	base *= 1.0 - variation * 0.5 + n * variation;
 
-	// Large-scale variation so a wide lawn does not read as wallpaper.
-	vec3 macro = mix(texture(grass_albedo, macro_uv).rgb, texture(sand_albedo, macro_uv).rgb, sandiness);
-	albedo = mix(albedo, albedo * (0.5 + macro), macro_strength);
-
-	vec3 grass_orm_s = texture(grass_orm, uv).rgb;
-	vec3 sand_orm_s = texture(sand_orm, uv).rgb;
-	vec3 orm = mix(grass_orm_s, sand_orm_s, sandiness);
-
-	vec3 n = mix(texture(grass_normal, uv).rgb, texture(sand_normal, uv).rgb, sandiness);
-
-	ALBEDO = albedo * v_colour.rgb;
-	NORMAL_MAP = n;
-	NORMAL_MAP_DEPTH = 0.8;
-	AO = orm.r;
-	AO_LIGHT_AFFECT = 0.6;
-	// Wet ground is smoother and darker.
-	ROUGHNESS = mix(orm.g, 0.18, wetness * 0.8);
-	METALLIC = orm.b;
-	ALBEDO *= mix(1.0, 0.72, wetness);
-	SPECULAR = mix(0.5, 0.85, wetness);
+	ALBEDO = base * mix(1.0, 0.82, wetness);
+	ROUGHNESS = mix(1.0, 0.35, wetness);
+	METALLIC = 0.0;
+	SPECULAR = wetness * 0.6;
 }

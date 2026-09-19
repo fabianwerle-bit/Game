@@ -30,9 +30,10 @@ static func _test_coastline(t: TestSupport, island: IslandLayout) -> void:
 		min_r = minf(min_r, r)
 		max_r = maxf(max_r, r)
 	# A circle would have min == max. Demand a genuinely irregular outline.
-	t.check(max_r - min_r > 40.0, "coastline is not a circle")
-	t.between(max_r, 100.0, 140.0, "island stays compact enough to cross quickly")
-	t.check(min_r > 35.0, "no part of the coast collapses into the middle")
+	t.check(max_r - min_r > 40.0 * IslandLayout.SCALE, "coastline is not a circle")
+	t.between(max_r, 100.0 * IslandLayout.SCALE, 140.0 * IslandLayout.SCALE,
+			"island stays compact enough to cross quickly")
+	t.check(min_r > 35.0 * IslandLayout.SCALE, "no part of the coast collapses into the middle")
 
 	# The harbour inlet is a notch in the north (-Z), the beach a bulge south.
 	var north := island._coast_point(-PI * 0.5).length()
@@ -45,7 +46,7 @@ static func _test_coastline(t: TestSupport, island: IslandLayout) -> void:
 	var n := island.coastline.size()
 	for i in range(n):
 		var step := island.coastline[i].distance_to(island.coastline[(i + 1) % n])
-		if step > 14.0:
+		if step > 14.0 * IslandLayout.SCALE:
 			t.check(false, "coastline step %d jumps %.1fm" % [i, step])
 			return
 	t.check(true, "coastline has no jagged jumps")
@@ -78,7 +79,7 @@ static func _test_districts(t: TestSupport, island: IslandLayout) -> void:
 		for j in range(i + 1, island.districts.size()):
 			var a: IslandLayout.District = island.districts[i]
 			var b: IslandLayout.District = island.districts[j]
-			if a.centre.distance_to(b.centre) <= 30.0:
+			if a.centre.distance_to(b.centre) <= 30.0 * IslandLayout.SCALE:
 				t.check(false, "%s and %s overlap" % [a.id, b.id])
 				return
 	t.check(true, "districts are spread across the island")
@@ -169,10 +170,11 @@ static func _test_lanes(t: TestSupport, roads: RoadGraph) -> void:
 	# Find real open ground rather than assuming a hand-picked point is clear.
 	var open_ground := Vector2.ZERO
 	var found := false
-	for gx in range(-90, 91, 3):
-		for gz in range(-90, 91, 3):
+	var reach := int(90.0 * IslandLayout.SCALE)
+	for gx in range(-reach, reach + 1, 2):
+		for gz in range(-reach, reach + 1, 2):
 			var p := Vector2(float(gx), float(gz))
-			if roads.distance_to_road(p) > 15.0:
+			if roads.distance_to_road(p) > 15.0 * IslandLayout.SCALE:
 				open_ground = p
 				found = true
 				break

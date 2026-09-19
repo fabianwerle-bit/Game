@@ -11,7 +11,10 @@ signal round_state_changed()
 signal toast(text: String)
 
 const TRASH_POOL := 220
-const GROUND_LITTER_TARGET := 25
+
+## Radius of the sphere swept along the camera boom to keep it out of walls.
+const CAMERA_PROBE_RADIUS := 0.45
+const GROUND_LITTER_TARGET := 18
 
 var rules := RoundRules.new()
 var island := IslandLayout.new()
@@ -36,7 +39,7 @@ var _vehicles: Array[Vehicle] = []
 var _spawn_clock: float = 0.0
 var _station_clock: float = 0.0
 var _rng := RandomNumberGenerator.new()
-var _camera_probe: PhysicsRayQueryParameters3D
+var _camera_probe: PhysicsShapeQueryParameters3D
 
 ## Summed chaos weight of every piece of litter lying about. Fed to the rules.
 var ground_chaos: float = 0.0
@@ -58,7 +61,7 @@ func _ready() -> void:
 ## pressing play only has to start the clock.
 func enter_attract_mode() -> void:
 	rules.state = RoundRules.IDLE
-	var start := roads.nodes[0] + Vector2(7.0, 7.0)
+	var start := roads.lane_point(0, 3, 0.4)
 	slime.reset_at(Vector3(start.x, IslandLayout.GROUND_Y + 0.4, start.y))
 	rig.reset(PI)
 	_attract_angle = 0.0
@@ -92,8 +95,11 @@ func _build_scene() -> void:
 	# Sun and sky.
 	var sun := DirectionalLight3D.new()
 	sun.name = "Sun"
-	sun.rotation_degrees = Vector3(-50, 38, 0)
-	sun.light_energy = 1.4
+	sun.rotation_degrees = Vector3(-48, 38, 0)
+	# Linear tonemapping clips anything over 1.0 straight to white, so sun and
+	# ambient together have to stay under it or the whole island blows out -
+	# which is exactly what the first cartoon pass did.
+	sun.light_energy = 0.58
 	sun.shadow_enabled = GameSettings.shadows_enabled()
 	sun.directional_shadow_max_distance = GameSettings.draw_distance() * 0.6
 	add_child(sun)
@@ -104,25 +110,28 @@ func _build_scene() -> void:
 	env.background_mode = Environment.BG_SKY
 	var sky := Sky.new()
 	var sky_mat := ProceduralSkyMaterial.new()
-	sky_mat.sky_top_color = Color(0.32, 0.54, 0.86)
-	sky_mat.sky_horizon_color = Color(0.76, 0.86, 0.94)
-	sky_mat.ground_bottom_color = Color(0.22, 0.28, 0.30)
-	sky_mat.ground_horizon_color = Color(0.76, 0.86, 0.94)
+	sky_mat.sky_top_color = Palette.SKY_TOP
+	sky_mat.sky_horizon_color = Palette.SKY_HORIZON
+	sky_mat.ground_bottom_color = Palette.WATER_DEEP
+	sky_mat.ground_horizon_color = Palette.SKY_HORIZON
 	sky.sky_material = sky_mat
 	env.sky = sky
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	env.ambient_light_energy = 1.0
+	# Strong sky bounce keeps the shadow sides colourful instead of muddy,
+	# which is most of what makes a flat palette read as cartoon.
+	env.ambient_light_energy = 0.55
+	# Almost no fog: haze is what turned the first pass grey.
 	env.fog_enabled = true
-	env.fog_density = 0.0016
-	env.tonemap_mode = Environment.TONE_MAPPER_ACES
-	env.tonemap_white = 6.0
+	env.fog_density = 0.0004
+	env.fog_sky_affect = 0.0
+	# Filmic tonemapping crushes saturated colour; linear keeps the candy tones.
+	env.tonemap_mode = Environment.TONE_MAPPER_LINEAR
+	env.tonemap_white = 1.0
 	if GameSettings.tier() >= GameSettings.TIER_MEDIUM:
-		env.ssao_enabled = true
-		env.ssao_radius = 1.4
-		env.ssao_intensity = 1.6
+		# No SSAO: it greys out exactly the corners the flat look wants clean.
 		env.glow_enabled = true
-		env.glow_intensity = 0.5
-		env.glow_bloom = 0.12
+		env.glow_intensity = 0.35
+		env.glow_bloom = 0.06
 	env_node.environment = env
 	add_child(env_node)
 
@@ -150,9 +159,16 @@ func _build_scene() -> void:
 	add_child(camera)
 	camera.current = true
 
-	_camera_probe = PhysicsRayQueryParameters3D.new()
+	# A sphere, not a ray: a thin ray slips between two buildings while the
+	# camera's near plane is still buried in one of them, which is exactly how
+	# the view kept ending up inside a shop.
+	var probe_shape := SphereShape3D.new()
+	probe_shape.radius = CAMERA_PROBE_RADIUS
+	_camera_probe = PhysicsShapeQueryParameters3D.new()
+	_camera_probe.shape = probe_shape
 	_camera_probe.collision_mask = 1
 	_camera_probe.collide_with_areas = false
+	_camera_probe.collide_with_bodies = true
 
 	_trash_root = Node3D.new()
 	_trash_root.name = "Litter"
@@ -205,7 +221,10 @@ func start_round() -> void:
 		_return_trash(item)
 	_trash_live.clear()
 
-	var start := roads.nodes[0] + Vector2(6.0, 6.0)
+	# Start part way down the street south of the plaza: carriageway by
+	# construction, so never inside a building, and off the junction itself so
+	# the first thing that happens is not being run over.
+	var start := roads.lane_point(0, 3, 0.4)
 	slime.reset_at(Vector3(start.x, IslandLayout.GROUND_Y + 0.4, start.y))
 	rig.reset(PI)
 	_pick_active_station(true)
@@ -271,11 +290,13 @@ func _update_camera(delta: float) -> void:
 			+ CameraRig.DISTANCE_PER_FILL * slime.fill_ratio())
 	var allowed := want.length()
 	var space := get_world_3d().direct_space_state
-	_camera_probe.from = focus
-	_camera_probe.to = focus + want
-	var hit := space.intersect_ray(_camera_probe)
-	if not hit.is_empty():
-		allowed = focus.distance_to(hit["position"]) - 0.35
+	_camera_probe.transform = Transform3D(Basis(), focus)
+	_camera_probe.motion = want
+	# cast_motion returns how far the sphere can travel before it touches
+	# anything: [safe fraction, unsafe fraction].
+	var travel := space.cast_motion(_camera_probe)
+	if travel.size() == 2 and travel[0] < 1.0:
+		allowed = want.length() * float(travel[0])
 
 	rig.update(delta, slime.motion.heading, speed01, slime.fill_ratio(), allowed)
 	camera.global_position = focus + rig.boom_offset()
@@ -361,7 +382,7 @@ func _update_spawning(delta: float) -> void:
 	_spawn_clock -= delta
 	if _spawn_clock > 0.0:
 		return
-	var base := 2.6 * rules.spawn_interval_scale() / maxf(events.litter_rate_scale(), 0.01)
+	var base := 4.6 * rules.spawn_interval_scale() / maxf(events.litter_rate_scale(), 0.01)
 	_spawn_clock = base * _rng.randf_range(0.7, 1.3)
 
 	# Background litter only tops the island up; most of it comes from people.

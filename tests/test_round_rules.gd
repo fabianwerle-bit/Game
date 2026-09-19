@@ -19,6 +19,15 @@ static func _kind(id: StringName) -> TrashCatalog.Kind:
 	return TrashCatalog.get_kind(id)
 
 
+## Pick up `count` pieces, emptying at a station whenever the slime fills up.
+## The slime only holds ten, so any combo past that has to survive a delivery.
+static func _collect(r: RoundRules, count: int) -> void:
+	for i in range(count):
+		if r.is_full():
+			r.on_bank()
+		r.on_pickup(TrashCatalog.get_kind(&"paper"))
+
+
 static func _test_start_state(t: TestSupport) -> void:
 	t.suite("start")
 	var r := RoundRules.new()
@@ -29,7 +38,7 @@ static func _test_start_state(t: TestSupport) -> void:
 	t.eq(r.phase, 1, "opens in phase 1")
 	t.eq(r.multiplier, 1, "no multiplier yet")
 	t.near(r.chaos, 0.0, 0.001, "city starts clean")
-	t.eq(r.capacity_left(), 20, "full capacity available")
+	t.eq(r.capacity_left(), TrashCatalog.CAPACITY_MAX, "full capacity available")
 
 
 static func _test_pickup_and_combo(t: TestSupport) -> void:
@@ -37,20 +46,16 @@ static func _test_pickup_and_combo(t: TestSupport) -> void:
 	var r := RoundRules.new()
 	r.start()
 	# Two pickups stay at x1, the third reaches x2 (spec: 3 items -> x2).
-	r.on_pickup(_kind(&"paper"))
-	r.on_pickup(_kind(&"paper"))
+	_collect(r, 2)
 	t.eq(r.multiplier, 1, "x1 below three pickups")
-	r.on_pickup(_kind(&"paper"))
+	_collect(r, 1)
 	t.eq(r.multiplier, 2, "x2 at three pickups")
-	for i in range(3):
-		r.on_pickup(_kind(&"paper"))
+	_collect(r, 3)
 	t.eq(r.multiplier, 3, "x3 at six pickups")
-	for i in range(4):
-		r.on_pickup(_kind(&"paper"))
+	_collect(r, 4)
 	t.eq(r.multiplier, 4, "x4 at ten pickups")
-	for i in range(5):
-		r.on_pickup(_kind(&"paper"))
-	t.eq(r.multiplier, 5, "x5 at fifteen pickups")
+	_collect(r, 5)
+	t.eq(r.multiplier, 5, "x5 at fifteen pickups, carried across a delivery")
 	t.eq(r.stat_best_combo, 15, "best combo tracked")
 
 	# Points ride on the multiplier that was active at pickup time.
@@ -98,15 +103,18 @@ static func _test_banking(t: TestSupport) -> void:
 	var r2 := RoundRules.new()
 	r2.start()
 	r2.time_left = 10.0
-	# Five trash bags: 4 capacity each, exactly the 20 cap.
-	for i in range(5):
-		r2.on_pickup(_kind(&"trash_bag"))
-	t.check(r2.is_full(), "slime reports full at capacity 20")
+	# Fill exactly to the cap with single-capacity litter.
+	for i in range(TrashCatalog.CAPACITY_MAX):
+		r2.on_pickup(_kind(&"can"))
+	t.check(r2.is_full(), "slime reports full at the capacity cap")
 	t.eq(r2.capacity_left(), 0, "no capacity left")
+	t.eq(r2.on_pickup(_kind(&"can")), 0, "a full slime takes nothing more")
+	t.eq(r2.carried_capacity, TrashCatalog.CAPACITY_MAX, "and does not overfill")
 	var before2 := r2.time_left
 	r2.on_bank()
-	# 20 capacity * 0.8 = 16, plus the 3 second full-load bonus.
-	t.near(r2.time_left - before2, 19.0, 0.001, "full load pays 16s + 3s bonus")
+	var expected := RoundRules.TIME_PER_CAPACITY_BANKED * float(TrashCatalog.CAPACITY_MAX) \
+			+ RoundRules.TIME_FULL_LOAD_BONUS
+	t.near(r2.time_left - before2, expected, 0.001, "full load pays per unit plus the bonus")
 
 	t.suite("empty bank")
 	var r3 := RoundRules.new()
@@ -120,8 +128,8 @@ static func _test_time_ceiling(t: TestSupport) -> void:
 	var r := RoundRules.new()
 	r.start()
 	r.time_left = 58.0
-	for i in range(5):
-		r.on_pickup(_kind(&"trash_bag"))
+	for i in range(TrashCatalog.CAPACITY_MAX):
+		r.on_pickup(_kind(&"can"))
 	r.on_bank()
 	t.near(r.time_left, 60.0, 0.001, "timer never exceeds 60 seconds")
 	r.add_time(100.0)
@@ -161,9 +169,10 @@ static func _test_chaos_meter(t: TestSupport) -> void:
 	t.suite("chaos meter")
 	var r := RoundRules.new()
 	r.start()
-	# Ground litter well past the phase-1 budget of 14 drives chaos up.
+	# Ground litter well past what phase 1 tolerates drives chaos up.
+	var budget: float = RoundRules.CHAOS_BUDGET[0]
 	for i in range(60):
-		r.tick(0.1, 40.0)
+		r.tick(0.1, budget * 2.5)
 	t.check(r.chaos > 0.0, "a filthy street raises chaos")
 	var peak := r.chaos
 	# Cleaning up below the budget brings it back down.
@@ -174,7 +183,7 @@ static func _test_chaos_meter(t: TestSupport) -> void:
 	var r2 := RoundRules.new()
 	r2.start()
 	for i in range(120):
-		r2.tick(0.1, 4.0)
+		r2.tick(0.1, budget * 0.1)
 	t.near(r2.chaos, 0.0, 0.001, "chaos never goes below zero")
 
 

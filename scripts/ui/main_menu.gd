@@ -19,7 +19,7 @@ func setup(world: World) -> void:
 
 
 func _ready() -> void:
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_PASS
 	_build()
 
@@ -31,13 +31,13 @@ func _build() -> void:
 	# A soft gradient so the title reads over a bright sky without hiding the
 	# world behind it.
 	var shade := ColorRect.new()
-	shade.set_anchors_preset(Control.PRESET_FULL_RECT)
+	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	shade.color = Color(0.02, 0.06, 0.05, 0.52 if _page == Page.ROOT else 0.78)
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(shade)
 
 	_body = VBoxContainer.new()
-	_body.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_body.set_anchors_preset(Control.PRESET_FULL_RECT, false)
 	_body.offset_left = 62
 	_body.offset_right = -62
 	_body.offset_top = 120

@@ -9,12 +9,17 @@ extends RefCounted
 ## been placed, so nothing ends up in the sea, on the tarmac or inside its
 ## neighbour. Deterministic for a given seed.
 
-## Clearance from the road centreline to the front of a building.
-const SETBACK := 12.0
-const PLOT_SPACING := 10.5
+## Nominal setback, used only to decide which district a plot belongs to. The
+## real distance is computed per building from its own depth, so the front face
+## clears the pavement instead of the centre point clearing it.
+const SETBACK := 8.0
+
+## Gap between the back of the pavement and the front wall.
+const FRONT_MARGIN := 0.9
+const PLOT_SPACING := 8.5
 ## Half the minimum distance between two buildings. Must stay below half
 ## PLOT_SPACING or neighbouring plots on the same street reject each other.
-const MIN_GAP := 5.0
+const MIN_GAP := 0.8
 
 
 class Placement extends RefCounted:
@@ -56,6 +61,56 @@ func build() -> Node3D:
 	_place_beach(root)
 	_place_centre_features(root)
 	return root
+
+
+
+## Wrap a prop in a box collider sized to its own geometry.
+##
+## Buildings were being added as bare meshes, so the slime drove straight
+## through walls and the chase camera's obstruction probe had nothing to hit -
+## which is why the view kept ending up inside a shop.
+static func _add_collision(node: Node3D, layer: int = 1, shrink: float = 0.94) -> void:
+	var box := _local_bounds(node)
+	if box.size.x <= 0.01 or box.size.z <= 0.01:
+		return
+	var body := StaticBody3D.new()
+	body.name = "Body"
+	body.collision_layer = layer
+	body.collision_mask = 0
+	var shape := CollisionShape3D.new()
+	var form := BoxShape3D.new()
+	form.size = Vector3(box.size.x * shrink, maxf(box.size.y, 0.5), box.size.z * shrink)
+	shape.shape = form
+	shape.position = box.get_center()
+	body.add_child(shape)
+	node.add_child(body)
+
+
+static func _local_bounds(node: Node) -> AABB:
+	var box := AABB()
+	var first := true
+	for mesh: MeshInstance3D in _meshes(node):
+		if mesh.mesh == null:
+			continue
+		var local := mesh.mesh.get_aabb()
+		local.position *= mesh.scale
+		local.size *= mesh.scale
+		local.position += mesh.position
+		if first:
+			box = local
+			first = false
+		else:
+			box = box.merge(local)
+	return box
+
+
+static func _meshes(node: Node) -> Array:
+	var out: Array = []
+	if node is MeshInstance3D:
+		out.append(node)
+	for child in node.get_children():
+		out.append_array(_meshes(child))
+	return out
 
 
 func _fits(p: Vector2, radius: float, road_clearance: float) -> bool:
@@ -133,24 +188,38 @@ func _place_buildings(root: Node3D) -> void:
 			var t := (float(i) + 0.5) / float(maxi(plots, 1))
 			var centre := a.lerp(b, t)
 			for side: float in [1.0, -1.0]:
-				var spot := centre + right * side * SETBACK
-				var district := island.district_at(spot)
+				var district := island.district_at(centre + right * side * SETBACK)
 				var names := _building_names(district)
 				if names.is_empty():
 					continue
 				# Leave gaps: a solid wall of houses reads as a corridor.
-				if _rng.randf() < 0.16:
+				if _rng.randf() < 0.08:
 					continue
-				if not _fits(spot, MIN_GAP, SETBACK - 3.5):
-					continue
+
 				var name: StringName = names[_rng.randi_range(0, names.size() - 1)]
 				var node := AssetLibrary.model(name)
+
+				# Set back by the building's own front face, not its centre.
+				# Measuring to the centre put the front of every deep shop out
+				# on the carriageway, which the player then drove into.
+				var bounds := _local_bounds(node)
+				var front := maxf(bounds.position.z + bounds.size.z, 0.0)
+				var kerb := roads.road_half_width(e.kind) + TerrainBuilder.PAVEMENT_WIDTH
+				var setback := kerb + FRONT_MARGIN + front
+				var spot := centre + right * side * setback
+
+				var footprint := maxf(bounds.size.x, bounds.size.z) * 0.5 + MIN_GAP
+				if not _fits(spot, footprint, kerb + 0.5):
+					node.queue_free()
+					continue
+
 				node.position = Vector3(spot.x, IslandLayout.GROUND_Y, spot.y)
 				# Face the road: the model's front is +Z.
 				var facing := -right * side
 				node.rotation.y = atan2(facing.x, facing.y)
+				_add_collision(node)
 				holder.add_child(node)
-				_claim(spot, MIN_GAP)
+				_claim(spot, footprint)
 
 
 func _place_street_furniture(root: Node3D) -> void:
@@ -238,6 +307,7 @@ func _place_harbour(root: Node3D) -> void:
 		var node := AssetLibrary.model(&"container")
 		node.position = Vector3(spot.x, IslandLayout.GROUND_Y, spot.y)
 		node.rotation.y = _rng.randf_range(-0.3, 0.3) + (0.0 if i % 2 == 0 else PI * 0.5)
+		_add_collision(node)
 		holder.add_child(node)
 		_claim(spot, 4.5)
 		# Occasionally a second one on top.
@@ -252,6 +322,7 @@ func _place_harbour(root: Node3D) -> void:
 		var crane := AssetLibrary.model(&"crane")
 		crane.position = Vector3(crane_spot.x, IslandLayout.GROUND_Y, crane_spot.y)
 		crane.rotation.y = 2.2
+		_add_collision(crane)
 		holder.add_child(crane)
 		_claim(crane_spot, 6.0)
 

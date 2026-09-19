@@ -70,14 +70,14 @@ is an honest account of both sides.
 ## Installing the APK
 
 A signed, installable release build is committed at
-[`dist/SlimeCleanup-0.3.0.apk`](dist/SlimeCleanup-0.3.0.apk) — use the
-**Download raw file** button on that page. `dist/SlimeCleanup-0.3.0.apk.sha256`
+[`dist/SlimeCleanup-0.3.1.apk`](dist/SlimeCleanup-0.3.1.apk) — use the
+**Download raw file** button on that page. `dist/SlimeCleanup-0.3.1.apk.sha256`
 carries its checksum.
 
 - Android 7.0 (API 24) or newer, arm64, OpenGL ES 3.0
 - Portrait only, and it asks for **no permissions at all** — no internet, no
   storage, nothing
-- Package `de.fabian.slimecleanup`, version 0.3.0
+- Package `de.fabian.slimecleanup`, version 0.3.1
 
 Copy it to the phone and open it. Android will ask you to allow installing
 from whichever app you opened it with, because it does not come from Play.

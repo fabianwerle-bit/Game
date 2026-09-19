@@ -44,7 +44,7 @@ func setup(world: World) -> void:
 
 
 func _ready() -> void:
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_build_top()
 	_build_bottom()
@@ -89,7 +89,7 @@ func _make_bar(fill: Color) -> ProgressBar:
 func _build_top() -> void:
 	var panel := PanelContainer.new()
 	panel.name = "TopPanel"
-	panel.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	panel.set_anchors_preset(Control.PRESET_TOP_WIDE, false)
 	panel.offset_left = 24
 	panel.offset_right = -24
 	panel.offset_top = 28
@@ -172,7 +172,7 @@ func _build_top() -> void:
 
 	# Combo, centred under the panel where it cannot be missed.
 	_combo_label = Label.new()
-	_combo_label.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_combo_label.set_anchors_preset(Control.PRESET_CENTER_TOP, false)
 	_combo_label.offset_top = 268
 	_combo_label.offset_left = -300
 	_combo_label.offset_right = 300
@@ -187,7 +187,7 @@ func _build_top() -> void:
 	add_child(_combo_label)
 
 	_toast_label = Label.new()
-	_toast_label.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_toast_label.set_anchors_preset(Control.PRESET_CENTER_TOP, false)
 	_toast_label.offset_top = 340
 	_toast_label.offset_left = -360
 	_toast_label.offset_right = 360
@@ -204,7 +204,7 @@ func _build_top() -> void:
 func _build_bottom() -> void:
 	joystick = Joystick.new()
 	joystick.name = "Joystick"
-	joystick.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	joystick.set_anchors_preset(Control.PRESET_BOTTOM_WIDE, false)
 	joystick.offset_top = -620
 	joystick.offset_bottom = 0
 	joystick.moved.connect(func(v: Vector2): stick_moved.emit(v))
@@ -213,7 +213,7 @@ func _build_bottom() -> void:
 	var pause := Button.new()
 	pause.name = "Pause"
 	pause.text = "II"
-	pause.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	pause.set_anchors_preset(Control.PRESET_TOP_RIGHT, false)
 	pause.offset_left = -116
 	pause.offset_right = -28
 	pause.offset_top = 268
@@ -227,7 +227,7 @@ func _build_bottom() -> void:
 func _build_arrow() -> void:
 	_arrow = Control.new()
 	_arrow.name = "StationArrow"
-	_arrow.set_anchors_preset(Control.PRESET_CENTER)
+	_arrow.set_anchors_preset(Control.PRESET_CENTER, false)
 	_arrow.offset_top = -80
 	_arrow.offset_bottom = 80
 	_arrow.offset_left = -80

@@ -7,8 +7,8 @@ render_mode blend_mix, depth_draw_opaque, cull_back, diffuse_burley, specular_sc
 // water moves and catches the light rather than sitting there as a blue plane.
 // Shallow water near the shore is lighter and more transparent.
 
-uniform vec3 deep_colour : source_color = vec3(0.05, 0.20, 0.34);
-uniform vec3 shallow_colour : source_color = vec3(0.16, 0.48, 0.58);
+uniform vec3 deep_colour : source_color = vec3(0.09, 0.45, 0.66);
+uniform vec3 shallow_colour : source_color = vec3(0.28, 0.76, 0.85);
 uniform vec3 foam_colour : source_color = vec3(0.85, 0.94, 0.96);
 
 uniform float wave_height = 0.16;

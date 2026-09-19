@@ -9,13 +9,14 @@ extends RefCounted
 ## direction of travel, the forward lean under braking, the lateral pull
 ## through a turn and the flatten on impact.
 
-## Radius when empty (top of the body reaches an adult's knee) and when fully
-## loaded (roughly hip height). Anything beyond that stops reading as a slime.
-const RADIUS_EMPTY := 0.28
-const RADIUS_FULL := 0.52
+## Radius when empty and when fully loaded. Sized to read as a character on a
+## phone screen rather than to a strict height rule: a knee-high blob was
+## technically in proportion and visually a pea.
+const RADIUS_EMPTY := 0.62
+const RADIUS_FULL := 1.05
 
-const SPEED_EMPTY := 6.6
-const SPEED_FULL := 5.2
+const SPEED_EMPTY := 7.4
+const SPEED_FULL := 6.0
 const ACCELERATION := 26.0
 const FRICTION := 14.0
 const AIR_CONTROL := 0.35
@@ -172,9 +173,11 @@ func display_fill() -> float:
 ## points along `heading`. Roughly volume preserving, so a stretched slime
 ## thins out instead of simply growing.
 func deform_scale() -> Vector3:
-	var forward := 1.0 + stretch
-	var vertical := 1.0 - flatten - stretch * 0.35
-	var lateral := 1.0 + absf(side) * 0.6 - stretch * 0.35
+	# A resting blob settles: slightly wider than tall, never a perfect ball.
+	const REST_SQUASH := 0.12
+	var forward := 1.0 + stretch + REST_SQUASH * 0.5
+	var vertical := 1.0 - flatten - stretch * 0.35 - REST_SQUASH
+	var lateral := 1.0 + absf(side) * 0.6 - stretch * 0.35 + REST_SQUASH * 0.5
 	var volume := maxf(forward * vertical * lateral, 0.001)
 	var correction := pow(1.0 / volume, 1.0 / 3.0)
 	return Vector3(lateral, vertical, forward) * correction

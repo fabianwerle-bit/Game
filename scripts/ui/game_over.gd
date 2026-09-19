@@ -9,15 +9,15 @@ signal menu_pressed()
 
 
 func setup(rules: RoundRules, was_record: bool) -> void:
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 	var dim := ColorRect.new()
 	dim.color = Color(0.02, 0.05, 0.04, 0.86)
-	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(dim)
 
 	var panel := PanelContainer.new()
-	panel.set_anchors_preset(Control.PRESET_FULL_RECT)
+	panel.set_anchors_preset(Control.PRESET_FULL_RECT, false)
 	panel.offset_left = 60
 	panel.offset_right = -60
 	panel.offset_top = 200

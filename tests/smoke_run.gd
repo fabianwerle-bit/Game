@@ -10,7 +10,9 @@ extends SceneTree
 ## drives the whole thing and checks the invariants that matter.
 
 const WARMUP_FRAMES := 20
-const RUN_FRAMES := 2600
+## Long enough for the bot to reliably complete a delivery on the larger
+## island. Too short and the run fails on pathing luck rather than a bug.
+const RUN_FRAMES := 5200
 
 var _game: Node
 var _frames: int = 0
@@ -25,6 +27,9 @@ var _floor_frames: int = 0
 var _moving_frames: int = 0
 var _target_station: RecyclingStation
 var _peak_carried: int = 0
+var _stuck_since: int = 0
+var _stuck_from: Vector3 = Vector3.ZERO
+var _detour: int = 0
 
 
 func _init() -> void:
@@ -95,7 +100,12 @@ func _drive(world: World) -> void:
 	var target := Vector3.ZERO
 	var have_target := false
 
-	if slime.is_full() or (slime.carried.size() >= 4 and _target_station != null):
+	# Carry a few pieces, then go and hand them in. The earlier version only
+	# headed for a station once completely full, so every delivery in the run
+	# happened by driving over one at random - which stopped happening the
+	# moment the island got bigger, and the run started failing for no reason
+	# to do with the game.
+	if slime.carried.size() >= 3:
 		var station := world.nearest_active_station()
 		if station != null:
 			target = station.global_position
@@ -111,14 +121,23 @@ func _drive(world: World) -> void:
 				best = d
 				target = item.global_position
 				have_target = true
-		if slime.carried.size() >= 4:
-			var station := world.nearest_active_station()
-			if station != null and station.global_position.distance_to(slime.global_position) < best:
-				target = station.global_position
-				_target_station = station
 
 	if not have_target:
 		return
+
+	# Buildings are solid, so steering straight at something behind one wedges
+	# the bot against a wall and the run comes out flaky. Notice when no ground
+	# is being covered and go round, which a player does without thinking.
+	# Judge progress over a long enough window. Headless frames are far shorter
+	# than real ones, so a threshold tuned per-frame made the bot think it was
+	# stuck while running at full speed, and it circled instead of arriving.
+	if _frames - _stuck_since > 150:
+		var covered := slime.global_position.distance_to(_stuck_from)
+		_stuck_since = _frames
+		_stuck_from = slime.global_position
+		_detour = 0 if covered > 3.0 else 60
+	if _detour > 0:
+		_detour -= 1
 
 	# The control frame latches when a push starts, so steering means letting
 	# go and pushing again — exactly what a player does.
@@ -128,6 +147,9 @@ func _drive(world: World) -> void:
 
 	var to_target := target - slime.global_position
 	var world_dir := Vector2(to_target.x, to_target.z).normalized()
+	if _detour > 0:
+		# Slide along the obstacle instead of pressing into it.
+		world_dir = Vector2(-world_dir.y, world_dir.x)
 	# Invert SlimeMotion.stick_to_world for the camera bearing in use.
 	var yaw := world.rig.yaw
 	var forward := Vector2(cos(yaw), sin(yaw))
@@ -171,6 +193,17 @@ func _verify_world_built(world: World) -> void:
 		_check(buildings != null and buildings.get_child_count() >= 20,
 				"expected a built-up island, got %d buildings"
 				% (buildings.get_child_count() if buildings else 0))
+		# Every building has to be solid. Without this the slime drives through
+		# walls and the chase camera's obstruction probe has nothing to hit, so
+		# the view sits inside a shop.
+		if buildings != null:
+			var solid := 0
+			for child in buildings.get_children():
+				if child.find_child("Body", true, false) is StaticBody3D:
+					solid += 1
+			_check(solid == buildings.get_child_count(),
+					"only %d of %d buildings have collision"
+					% [solid, buildings.get_child_count()])
 
 	# The slime has to start on dry land, not in the sea or inside a building.
 	var here := Vector2(world.slime.global_position.x, world.slime.global_position.z)

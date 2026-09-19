@@ -40,7 +40,7 @@ const CHAOS_RISE := 0.055
 const CHAOS_FALL := 0.09
 
 ## Ground litter weight a phase tolerates before chaos starts climbing.
-const CHAOS_BUDGET := [34.0, 46.0, 58.0, 70.0]
+const CHAOS_BUDGET := [46.0, 58.0, 70.0, 82.0]
 
 const REASON_TIME := &"time"
 const REASON_CHAOS := &"chaos"
@@ -166,6 +166,10 @@ func _multiplier_for(count: int) -> int:
 ## The slime absorbed one piece of litter. Returns the points it put at stake.
 func on_pickup(kind: TrashCatalog.Kind) -> int:
 	if state != RUNNING or kind == null:
+		return 0
+	# A full slime takes nothing more. The slime node checks this too before it
+	# attaches anything, but the rules have to be right by themselves.
+	if carried_capacity + kind.capacity > TrashCatalog.CAPACITY_MAX:
 		return 0
 	combo_count += 1
 	combo_timer = COMBO_WINDOW

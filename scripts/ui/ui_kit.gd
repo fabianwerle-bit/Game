@@ -81,13 +81,22 @@ static func body(text: String, size: int = 28, colour: Color = MUTED) -> Label:
 	return l
 
 
+## A label on the left and its value on the right.
+##
+## The value must not wrap. Left on the word-wrapping default it had no width
+## of its own inside the row, so it broke to one character per line and the
+## summary screen came out as a vertical column of letters.
 static func row(label_text: String, value_text: String, size: int = 30) -> HBoxContainer:
 	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 16)
 	var left := body(label_text, size, MUTED)
+	left.autowrap_mode = TextServer.AUTOWRAP_OFF
 	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	h.add_child(left)
 	var right := body(value_text, size, INK)
+	right.autowrap_mode = TextServer.AUTOWRAP_OFF
 	right.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	right.size_flags_horizontal = Control.SIZE_SHRINK_END
 	h.add_child(right)
 	return h
 

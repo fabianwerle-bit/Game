@@ -8,8 +8,10 @@ extends RefCounted
 ## pavements offset further out. Junctions are simply nodes with three or more
 ## edges, and each one hands out a single crossing token so cars take turns.
 
-const LANE_HALF_WIDTH := 2.6
-const PAVEMENT_OFFSET := 5.4
+const LANE_HALF_WIDTH := 1.9
+## Where pedestrians walk. Must clear the carriageway, or the crowd strolls
+## down the middle of the kerb line.
+const PAVEMENT_OFFSET := 4.8
 
 enum { ROAD_MAIN, ROAD_STREET, ROAD_LANE }
 
@@ -38,6 +40,11 @@ func _init() -> void:
 
 
 func _build() -> void:
+	# A compact grid. Written in final metres rather than scaled from a larger
+	# layout: the point of the smaller island is tighter blocks, and uniformly
+	# shrinking a wide-street plan just leaves streets too narrow to build
+	# along. Twenty metres between parallel streets leaves room for a building
+	# set back from each side without the two overlapping.
 	nodes = PackedVector2Array([
 		Vector2(0, 0),        # 0  centre plaza
 		Vector2(0, -26),      # 1
@@ -48,23 +55,23 @@ func _build() -> void:
 		Vector2(26, 26),      # 6
 		Vector2(-26, 26),     # 7
 		Vector2(-26, -26),    # 8
-		Vector2(0, -50),      # 9  ring north, short of the harbour inlet
-		Vector2(41, -41),     # 10
-		Vector2(58, 0),       # 11 ring east
-		Vector2(41, 41),      # 12
-		Vector2(0, 58),       # 13 ring south
-		Vector2(-41, 41),     # 14
-		Vector2(-58, 0),      # 15 ring west
-		Vector2(-41, -41),    # 16
-		Vector2(-20, -58),    # 17 harbour quay, beside the inlet
-		Vector2(-38, -50),    # 18 harbour west
-		Vector2(18, 70),      # 19 beach promenade east
-		Vector2(-4, 68),      # 20 beach promenade west
-		Vector2(-64, 6),      # 21 suburb centre
-		Vector2(-72, -16),    # 22 suburb north
-		Vector2(-66, 28),     # 23 suburb south
-		Vector2(58, 26),      # 24 park entrance
-		Vector2(70, 8),       # 25 park east
+		Vector2(0, -42),      # 9  ring north, clear of the harbour inlet
+		Vector2(33, -33),     # 10
+		Vector2(47, 0),       # 11 ring east
+		Vector2(33, 33),      # 12
+		Vector2(0, 47),       # 13 ring south
+		Vector2(-33, 33),     # 14
+		Vector2(-47, 0),      # 15 ring west
+		Vector2(-33, -33),    # 16
+		Vector2(-16, -48),    # 17 harbour quay, beside the inlet
+		Vector2(-36, -40),    # 18 harbour west
+		Vector2(16, 58),      # 19 beach promenade east
+		Vector2(-5, 56),      # 20 beach promenade west
+		Vector2(-57, 5),      # 21 suburb centre
+		Vector2(-60, -16),    # 22 suburb north
+		Vector2(-54, 26),     # 23 suburb south
+		Vector2(51, 22),      # 24 park entrance
+		Vector2(56, 7),       # 25 park east
 	])
 
 	var main := [
@@ -124,11 +131,11 @@ func is_junction(node: int) -> bool:
 func road_half_width(kind: int) -> float:
 	match kind:
 		ROAD_MAIN:
-			return 7.2
-		ROAD_STREET:
-			return 5.6
-		_:
 			return 4.4
+		ROAD_STREET:
+			return 3.6
+		_:
+			return 3.0
 
 
 func edge_between(a: int, b: int) -> Edge:

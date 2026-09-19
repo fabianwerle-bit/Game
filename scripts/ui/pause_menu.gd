@@ -18,14 +18,14 @@ func setup(world: World) -> void:
 
 
 func _ready() -> void:
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var dim := ColorRect.new()
 	dim.color = Color(0.02, 0.05, 0.04, 0.78)
-	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(dim)
 
 	_stack = VBoxContainer.new()
-	_stack.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_stack.set_anchors_preset(Control.PRESET_FULL_RECT, false)
 	_stack.offset_left = 60
 	_stack.offset_right = -60
 	_stack.offset_top = 90
@@ -72,7 +72,7 @@ func _open_settings() -> void:
 		return
 	_stack.visible = false
 	_settings = SettingsPanel.new()
-	_settings.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_settings.set_anchors_preset(Control.PRESET_FULL_RECT, false)
 	_settings.offset_left = 60
 	_settings.offset_right = -60
 	_settings.offset_top = 140

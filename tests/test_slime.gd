@@ -106,8 +106,8 @@ static func _test_growth(t: TestSupport) -> void:
 	t.suite("growth")
 	var m := SlimeMotion.new()
 	m.reset(0.0)
-	t.near(m.radius(), SlimeMotion.RADIUS_EMPTY, 0.001, "empty slime is knee high")
-	t.check(SlimeMotion.RADIUS_FULL < 0.6, "a full slime never outgrows a passer-by")
+	t.near(m.radius(), SlimeMotion.RADIUS_EMPTY, 0.001, "an empty slime is at its base size")
+	t.check(SlimeMotion.RADIUS_FULL < 1.4, "a full slime stays smaller than a car")
 	t.check(SlimeMotion.RADIUS_FULL > SlimeMotion.RADIUS_EMPTY, "loading up makes it bigger")
 
 	# Filling up must ease, never pop: cap the growth in any single frame.
@@ -118,7 +118,7 @@ static func _test_growth(t: TestSupport) -> void:
 		m.step(1.0 / 60.0, Vector2.ZERO, 0.0)
 		biggest_step = maxf(biggest_step, absf(m.radius() - previous))
 		previous = m.radius()
-	t.check(biggest_step < 0.01, "growth is smoothed, not stepped")
+	t.check(biggest_step < 0.02, "growth is smoothed, not stepped")
 	t.near(m.radius(), SlimeMotion.RADIUS_FULL, 0.01, "reaches full size eventually")
 	t.near(m.max_speed(), SlimeMotion.SPEED_FULL, 0.05, "a full slime is slower")
 
@@ -200,7 +200,8 @@ static func _test_camera_follow(t: TestSupport) -> void:
 	var offset := rig.boom_offset()
 	t.check(offset.x < 0.0, "camera sits behind a slime heading along +X")
 	t.check(offset.y > 0.0, "camera sits above the ground")
-	t.between(offset.y, 0.5, 3.0, "camera stays at street level")
+	t.between(offset.y, 0.5, CameraRig.HEIGHT_BASE + CameraRig.HEIGHT_PER_FILL + 0.5,
+			"camera stays low enough to read as street level")
 
 	# A hard reversal must be swung through, not snapped.
 	var biggest := 0.0
@@ -234,11 +235,15 @@ static func _test_camera_obstruction(t: TestSupport) -> void:
 	rig.reset(0.0)
 	var open := rig.distance
 
-	# A wall behind the slime pulls the boom in quickly.
+	# A wall behind the slime pulls the boom in quickly. The wall is placed
+	# relative to the minimum boom so this keeps meaning something if the
+	# camera framing is retuned.
+	var wall := CameraRig.DISTANCE_MIN + 0.4
 	for i in range(30):
-		rig.update(1.0 / 60.0, 0.0, 0.0, 0.0, 1.3)
+		rig.update(1.0 / 60.0, 0.0, 0.0, 0.0, wall)
 	t.check(rig.distance < open, "camera pulls in at a wall")
-	t.between(rig.distance, CameraRig.DISTANCE_MIN, 1.35, "camera stops short of the wall")
+	t.between(rig.distance, CameraRig.DISTANCE_MIN, wall + 0.05,
+			"camera stops short of the wall")
 	t.check(rig.height < CameraRig.HEIGHT_BASE, "camera ducks as it closes in")
 
 	# And eases back out once the way is clear, without a jump.

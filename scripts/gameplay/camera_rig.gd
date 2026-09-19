@@ -11,12 +11,12 @@ extends RefCounted
 
 const FOV := 64.0
 
-const DISTANCE_BASE := 4.7
-const DISTANCE_PER_FILL := 1.4
-const DISTANCE_MIN := 1.05
+const DISTANCE_BASE := 6.2
+const DISTANCE_PER_FILL := 2.0
+const DISTANCE_MIN := 1.6
 
-const HEIGHT_BASE := 1.85
-const HEIGHT_PER_FILL := 0.55
+const HEIGHT_BASE := 3.1
+const HEIGHT_PER_FILL := 0.9
 
 ## Degrees per second the camera may swing to get behind the slime. Low enough
 ## that a hard turn never whips the view around.
@@ -28,13 +28,13 @@ const PULL_IN_SPEED := 26.0
 const PUSH_OUT_SPEED := 3.4
 
 ## Below this distance the slime is faded out so the camera never sits inside it.
-const FADE_START := 2.0
-const FADE_END := 1.15
+const FADE_START := 2.6
+const FADE_END := 1.7
 
 var yaw: float = PI
 var distance: float = DISTANCE_BASE
 var height: float = HEIGHT_BASE
-var look_height: float = 0.55
+var look_height: float = 0.75
 
 ## Where the camera ended up this frame, relative to the slime.
 var offset: Vector3 = Vector3.ZERO
