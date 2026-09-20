@@ -47,17 +47,23 @@ is an honest account of both sides.
 
 ### What is missing or provisional
 
-- **3D models.** Around 50 props — buildings, vehicles, people, street
-  furniture — are drawn with composed stand-in geometry built from primitives
-  in `scripts/core/prop_builder.gd`. They are recognisable objects with
-  materials, not bare cubes, but they are **not** the "modern stylized
-  realism" the design calls for. The game reports them: the boot log and the
-  smoke run both print how many props are still placeholders.
-  Dropping a real model at `assets/models/<name>.glb` replaces it with no code
-  change — see *Replacing the art* below.
-- **Characters are not rigged.** Pedestrians are articulated figures posed by
-  code through a walk cycle. A skinned, animated character would go straight
-  in as `assets/models/pedestrian.glb`.
+- **Some props are still stand-ins.** The buildings, trees, rocks, cars and
+  lorries are real artwork — Kenney's CC0 city, suburban, nature and car kits.
+  About a dozen props are not: the fountain, benches, bins, lamp posts, signs,
+  bollards, the harbour's containers and boat, and the people, dog, bicycle
+  and scooter. Those are composed stand-in geometry built from primitives in
+  `scripts/core/prop_builder.gd` — recognisable objects with materials, not
+  bare cubes, but not finished art. The game says which is which: the boot log
+  and the smoke run both print how many props are still placeholders.
+  Dropping a real model at `assets/models/<name>.glb` replaces one with no
+  code change — see *Replacing the art* below.
+- **The art is flat cartoon, not "modern stylized realism".** The design asks
+  for PBR and photoscanned materials; what is here is a toy town in flat
+  colour. The texture sets are fetched and wired up, but the look the game
+  actually ships is the cartoon one, which is a deliberate departure.
+- **Characters are not rigged.** Pedestrians are chibi figures built from
+  primitives and posed by code through a walk cycle. A skinned, animated
+  character would go straight in as `assets/models/pedestrian.glb`.
 - **No ambience track.** There is looping music and a full set of effects, but
   no town or seaside atmosphere loop — no CC0 one fit, and the brief rules out
   synthesised filler. `AudioDirector` supports one; the slot is simply empty.
@@ -143,6 +149,17 @@ python3 tools/fetch_assets.py          # everything missing
 python3 tools/fetch_assets.py --report # what is present
 ```
 
+- **Models**: four kits from [Kenney](https://kenney.nl) — City Kit
+  (Commercial), City Kit (Suburban), Car Kit and Nature Kit. The fetcher pulls
+  the props the game asks for out of each zip and renames them to the game's
+  own prop names.
+
+  Two things are done to them on the way in, both recorded in `AssetLibrary`
+  rather than baked into the files. The kits are modelled at one unit per
+  module rather than one per metre, so `SCALES` says what a unit is worth for
+  each model. And every kit paints from one shared palette texture, which
+  Godot drops when it is embedded in a `.glb`; the palettes are therefore
+  shipped alongside under `assets/models/textures/` and put back on at load.
 - **Textures**: ten PBR sets from [Poly Haven](https://polyhaven.com) — road,
   pavement, concrete, brick, plaster, roof tiles, wood, sand, grass and metal.
   Each is albedo, an OpenGL normal map and an ORM map (ambient occlusion,
@@ -166,12 +183,19 @@ art is a matter of dropping files in with the right names — `house0`, `shop1`,
 `car`, `pedestrian`, `palm`, `can`, and so on; `AssetLibrary.placeholder_report()`
 lists every name still waiting for one.
 
+A model is scaled and recoloured on the way in only if it is listed in
+`AssetLibrary.SCALES` and `PALETTES`. A model already built at one unit per
+metre and carrying its own textures needs neither, and should be left out of
+both.
+
 Two contracts the code relies on:
 
-- **Vehicles** need child nodes `FrontLeft`, `FrontRight`, `RearLeft`,
-  `RearRight`, each containing a node called `Spin`, plus a mesh named
-  `BrakeLight`. The front pair is steered, all four are spun, the brake light
-  is lit from the material's emission.
+- **Vehicles** need wheels the rig can find, under either of two namings: the
+  hand-built cars use `FrontLeft`, `FrontRight`, `RearLeft` and `RearRight`,
+  each containing a node called `Spin`, which separates steering from rolling;
+  Kenney's kit has plain meshes called `wheel-front-left` and so on, which are
+  steered and spun directly. A mesh named `BrakeLight` is lit from its
+  material's emission when one is there.
 - **Pedestrians** need `Hips`, `Torso`, `Head`, `ArmLeft`, `ArmRight`,
   `LegLeft`, `LegRight` and a `HandSocket` for the item they are about to
   drop. A rigged model with its own animations can ignore the walk cycle;
