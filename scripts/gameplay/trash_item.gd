@@ -36,13 +36,15 @@ var _model: Node3D
 var _radius: float = 0.08
 var _age: float = 0.0
 
-## Litter is grown while it rides on the slime.
+## Litter is built oversized, on the ground and on the slime alike.
 ##
-## At its ground size a drinks can is barely a tenth of the slime's width, so
-## a full load of ten pieces did not change the silhouette at all - the whole
-## point of the game was invisible. Grown, the load reads from the chase
-## camera the way it should.
-const ATTACHED_SCALE := 1.9
+## At life size a drinks can is twelve centimetres tall, which on a street
+## seen from the chase camera is a speck you cannot pick out at all - and a
+## full load of ten of them did not change the slime's silhouette either. The
+## whole point of the game was invisible at both ends. Growing it in one place
+## rather than only once it sticks also means a piece does not jump in size
+## the instant it is collected.
+const WORLD_SCALE := 2.1
 
 const GRAVITY := 18.0
 const BOUNCE := 0.34
@@ -55,8 +57,9 @@ func setup(p_kind: TrashCatalog.Kind) -> void:
 	if _model != null:
 		_model.queue_free()
 	_model = AssetLibrary.model(kind.model)
+	_model.scale = Vector3.ONE * WORLD_SCALE
 	add_child(_model)
-	_radius = _estimate_radius()
+	_radius = _estimate_radius() * WORLD_SCALE
 
 
 func _estimate_radius() -> float:
@@ -197,11 +200,9 @@ func _step_loose(delta: float) -> void:
 
 
 func _step_attached(delta: float, slime_transform: Transform3D, slime_radius: float) -> void:
-	var worn := _radius * ATTACHED_SCALE
-	var local_pos := AttachmentPoints.position(_slot, _slot_total, slime_radius, worn)
+	var local_pos := AttachmentPoints.position(_slot, _slot_total, slime_radius, _radius)
 	var local_basis := AttachmentPoints.basis(_slot, _slot_total)
-	var basis := (slime_transform.basis * local_basis).scaled(Vector3.ONE * ATTACHED_SCALE)
-	var target := Transform3D(basis,
+	var target := Transform3D(slime_transform.basis * local_basis,
 			slime_transform.origin + slime_transform.basis * local_pos)
 	if _blend < 1.0:
 		# Short suck-in from wherever the piece was when it was caught.
