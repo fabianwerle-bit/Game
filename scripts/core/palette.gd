@@ -22,8 +22,8 @@ const ROCK := Color(0.58, 0.58, 0.56)
 
 # Streets
 const TARMAC := Color(0.33, 0.34, 0.36)
-const PAVEMENT := Color(0.74, 0.73, 0.69)
-const MARKING := Color(0.93, 0.93, 0.88)
+const PAVEMENT := Color(0.66, 0.65, 0.62)
+const MARKING := Color(0.88, 0.88, 0.84)
 
 # Water
 const WATER_DEEP := Color(0.09, 0.45, 0.66)

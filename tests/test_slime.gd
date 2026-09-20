@@ -244,7 +244,7 @@ static func _test_camera_obstruction(t: TestSupport) -> void:
 	t.check(rig.distance < open, "camera pulls in at a wall")
 	t.between(rig.distance, CameraRig.DISTANCE_MIN, wall + 0.05,
 			"camera stops short of the wall")
-	t.check(rig.height < CameraRig.HEIGHT_BASE, "camera ducks as it closes in")
+	t.check(rig.height > CameraRig.HEIGHT_BASE, "camera climbs as it closes in")
 
 	# And eases back out once the way is clear, without a jump.
 	var previous := rig.distance

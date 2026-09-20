@@ -133,6 +133,10 @@ func _build_scene() -> void:
 	# Filmic tonemapping crushes saturated colour; linear keeps the candy tones.
 	env.tonemap_mode = Environment.TONE_MAPPER_LINEAR
 	env.tonemap_white = 1.0
+	# A touch under one. Pavements and road markings are the brightest things
+	# on the island, and at full exposure they clipped to flat white and took
+	# the shape of the street with them.
+	env.tonemap_exposure = 0.88
 	if GameSettings.tier() >= GameSettings.TIER_MEDIUM:
 		# No SSAO: it greys out exactly the corners the flat look wants clean.
 		env.glow_enabled = true

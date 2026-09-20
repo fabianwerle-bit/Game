@@ -1,0 +1,41 @@
+Kenney - 3D models
+
+Source:  https://kenney.nl/assets
+Licence: CC0 1.0 Universal (public domain dedication)
+         https://creativecommons.org/publicdomain/zero/1.0/
+
+CC0 places these works in the public domain: they may be used, modified and
+redistributed for any purpose, including commercially, with no attribution
+required. The credits below are given voluntarily.
+
+Each kit paints every model from one shared palette texture. Godot drops that
+texture when it is embedded in a .glb, so the kit's colormap.png is written
+beside the models under assets/models/textures/ and reattached at load time.
+
+Game prop name, kit and original file:
+  shop0        city-kit-commercial  building-a.glb
+  warehouse0   city-kit-commercial  building-b.glb
+  shop1        city-kit-commercial  building-c.glb
+  warehouse1   city-kit-commercial  building-d.glb
+  shop2        city-kit-commercial  building-e.glb
+  block0       city-kit-commercial  building-g.glb
+  block1       city-kit-commercial  building-j.glb
+  house0       city-kit-suburban    building-type-a.glb
+  house1       city-kit-suburban    building-type-c.glb
+  house2       city-kit-suburban    building-type-f.glb
+  beach_hut0   city-kit-suburban    building-type-h.glb
+  beach_hut1   city-kit-suburban    building-type-i.glb
+  house3       city-kit-suburban    building-type-j.glb
+  fence        city-kit-suburban    fence.glb
+  planter      city-kit-suburban    planter.glb
+  delivery     car-kit              delivery.glb
+  bin_lorry    car-kit              garbage-truck.glb
+  car          car-kit              sedan.glb
+  truck        car-kit              truck.glb
+  van          car-kit              van.glb
+  flowers      nature-kit           flower_redA.glb
+  bush         nature-kit           plant_bushDetailed.glb
+  rock         nature-kit           rock_largeA.glb
+  tree         nature-kit           tree_default.glb
+  palm         nature-kit           tree_palmDetailedTall.glb
+  tree_small   nature-kit           tree_small.glb

@@ -11,12 +11,21 @@ extends RefCounted
 
 const FOV := 64.0
 
-const DISTANCE_BASE := 6.2
+const DISTANCE_BASE := 6.0
 const DISTANCE_PER_FILL := 2.0
-const DISTANCE_MIN := 1.6
+const DISTANCE_MIN := 1.8
 
-const HEIGHT_BASE := 3.1
+## Set high enough to see over a parked car and down the next street, which is
+## what a game about spotting litter on the ground needs.
+const HEIGHT_BASE := 4.0
 const HEIGHT_PER_FILL := 0.9
+
+## How much higher the camera rides when the boom is fully retracted.
+##
+## It used to duck instead, and backing the slime into a shop doorway put the
+## camera on the floor of the porch looking at a wall. Climbing turns the same
+## situation into a view down onto the slime, which is still playable.
+const HEIGHT_CLOSE_LIFT := 1.5
 
 ## Degrees per second the camera may swing to get behind the slime. Low enough
 ## that a hard turn never whips the view around.
@@ -62,9 +71,10 @@ func update(delta: float, target_heading: float, speed01: float, fill01: float,
 	distance = move_toward(distance, capped, speed * delta)
 
 	height = HEIGHT_BASE + HEIGHT_PER_FILL * clampf(fill01, 0.0, 1.0)
-	# Duck the camera as the boom shortens so a close shot still frames the slime.
+	# Climb as the boom shortens, so a shot taken hard against a wall looks
+	# down on the slime rather than into the brickwork.
 	var closeness := clampf(distance / maxf(want, 0.001), 0.0, 1.0)
-	height *= lerpf(0.55, 1.0, closeness)
+	height *= lerpf(HEIGHT_CLOSE_LIFT, 1.0, closeness)
 
 	offset = boom_offset()
 

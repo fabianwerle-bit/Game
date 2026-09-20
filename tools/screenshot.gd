@@ -15,9 +15,9 @@ extends SceneTree
 const OUT_DIR := "user://shots"
 
 ## Frames before the round starts, and between gameplay shots.
-const SETTLE := 40
-const SHOT_INTERVAL := 70
-const GAMEPLAY_SHOTS := 4
+const SETTLE := 20
+const SHOT_INTERVAL := 45
+const GAMEPLAY_SHOTS := 3
 
 ## Fixed vantage points taken after the gameplay shots, with the world frozen.
 ## Framing the town square and one street from above is what actually shows

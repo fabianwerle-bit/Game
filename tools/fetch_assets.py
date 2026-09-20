@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Fetch the CC0 artwork the game uses.
 
-Downloads PBR texture sets from Poly Haven and sound effects from Kenney,
-writes them into `assets/`, and records the licence and provenance of every
-file in `assets/licenses/`.
+Downloads 3D models and sound effects from Kenney and PBR texture sets from
+Poly Haven, writes them into `assets/`, and records the licence and
+provenance of every file in `assets/licenses/`.
 
 Everything fetched here is CC0 (public domain). Nothing is bundled into the
 repository by this script that is not free to redistribute.
@@ -20,6 +20,7 @@ import argparse
 import io
 import json
 import sys
+import re
 import urllib.request
 import zipfile
 from pathlib import Path
@@ -27,7 +28,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 TEX_DIR = ROOT / "assets" / "textures"
 AUDIO_DIR = ROOT / "assets" / "audio"
+MODEL_DIR = ROOT / "assets" / "models"
+MODEL_TEX_DIR = MODEL_DIR / "textures"
 LICENSE_DIR = ROOT / "assets" / "licenses"
+
+KENNEY_ASSETS = "https://kenney.nl/assets"
 
 POLYHAVEN_API = "https://api.polyhaven.com"
 RESOLUTION = "1k"
@@ -52,6 +57,53 @@ TEXTURE_SLOTS: dict[str, list[str]] = {
 # ambient occlusion, roughness and metallic into R/G/B, which is exactly
 # Godot's ORM layout.
 MAP_KEYS = {"Diffuse": "albedo", "nor_gl": "normal", "arm": "orm"}
+
+# Kenney's CC0 model kits: the page slug, the folder the .glb files sit in
+# inside the zip, and which of the game's props come out of it.
+#
+# The download URL is not written down because Kenney's is content-hashed and
+# changes with every release; the kit page is scraped for the current one.
+MODEL_KITS = {
+    "city-kit-commercial": ("Models/GLB format/", "colormap_city", {
+        "building-a": "shop0", "building-c": "shop1", "building-e": "shop2",
+        "building-g": "block0", "building-j": "block1",
+        "building-b": "warehouse0", "building-d": "warehouse1",
+    }),
+    "city-kit-suburban": ("Models/GLB format/", "colormap_suburban", {
+        "building-type-a": "house0", "building-type-c": "house1",
+        "building-type-f": "house2", "building-type-j": "house3",
+        "building-type-h": "beach_hut0", "building-type-i": "beach_hut1",
+        "planter": "planter", "fence": "fence",
+    }),
+    "car-kit": ("Models/GLB format/", "colormap_cars", {
+        "sedan": "car", "van": "van", "truck": "truck",
+        "garbage-truck": "bin_lorry", "delivery": "delivery",
+    }),
+    # The nature kit paints from material colours rather than a palette
+    # texture, so it has no colormap to ship alongside.
+    "nature-kit": ("Models/GLTF format/", None, {
+        "tree_default": "tree", "tree_small": "tree_small",
+        "tree_palmDetailedTall": "palm", "plant_bushDetailed": "bush",
+        "rock_largeA": "rock", "flower_redA": "flowers",
+    }),
+}
+
+MODEL_LICENSE_HEADER = """Kenney - 3D models
+
+Source:  https://kenney.nl/assets
+Licence: CC0 1.0 Universal (public domain dedication)
+         https://creativecommons.org/publicdomain/zero/1.0/
+
+CC0 places these works in the public domain: they may be used, modified and
+redistributed for any purpose, including commercially, with no attribution
+required. The credits below are given voluntarily.
+
+Each kit paints every model from one shared palette texture. Godot drops that
+texture when it is embedded in a .glb, so the kit's colormap.png is written
+beside the models under assets/models/textures/ and reattached at load time.
+
+Game prop name, kit and original file:
+"""
 
 # Looping background music. CC0, from OpenGameArt.
 MUSIC = {
@@ -104,6 +156,66 @@ def fetch(url: str, timeout: int = 180) -> bytes:
 
 def api(path: str) -> dict:
     return json.loads(fetch(f"{POLYHAVEN_API}{path}", timeout=60).decode("utf-8"))
+
+
+def kit_zip_url(slug: str) -> str | None:
+    """Scrape a Kenney asset page for its current download link."""
+    page = fetch(f"{KENNEY_ASSETS}/{slug}", timeout=60).decode("utf-8", "replace")
+    found = re.findall(r"https://kenney\.nl/media/pages/assets/[^\"']+\.zip", page)
+    return found[0] if found else None
+
+
+def fetch_models(force: bool) -> tuple[list[str], list[str]]:
+    """Download the model kits and unpack the props the game asks for."""
+    MODEL_DIR.mkdir(parents=True, exist_ok=True)
+    MODEL_TEX_DIR.mkdir(parents=True, exist_ok=True)
+    fetched: list[str] = []
+    failed: list[str] = []
+    credits: list[str] = []
+
+    for slug, (prefix, colormap, props) in MODEL_KITS.items():
+        wanted = {
+            name: dst for name, dst in props.items()
+            if force or not (MODEL_DIR / f"{dst}.glb").exists()
+        }
+        need_colormap = colormap is not None and (
+            force or not (MODEL_TEX_DIR / f"{colormap}.png").exists())
+        for name, dst in sorted(props.items()):
+            credits.append(f"{dst:12} {slug:20} {name}.glb")
+        if not wanted and not need_colormap:
+            print(f"  {slug:22} present")
+            continue
+
+        try:
+            url = kit_zip_url(slug)
+            if url is None:
+                raise RuntimeError("no download link on the kit page")
+            archive = zipfile.ZipFile(io.BytesIO(fetch(url)))
+        except Exception as error:  # noqa: BLE001 - reported, not raised
+            print(f"  {slug:22} FAILED ({error})")
+            failed.append(slug)
+            continue
+
+        members = set(archive.namelist())
+        for name, dst in sorted(wanted.items()):
+            path = f"{prefix}{name}.glb"
+            if path not in members:
+                print(f"  {slug:22} missing {name}.glb")
+                failed.append(f"{slug}/{name}")
+                continue
+            (MODEL_DIR / f"{dst}.glb").write_bytes(archive.read(path))
+            fetched.append(dst)
+        if need_colormap:
+            path = f"{prefix}Textures/colormap.png"
+            if path in members:
+                (MODEL_TEX_DIR / f"{colormap}.png").write_bytes(archive.read(path))
+                fetched.append(colormap)
+            else:
+                failed.append(f"{slug}/colormap")
+        print(f"  {slug:22} {len(wanted)} model(s)")
+
+    _write_license("kenney-models.txt", MODEL_LICENSE_HEADER, credits)
+    return fetched, failed
 
 
 def fetch_textures(force: bool) -> tuple[list[str], list[str]]:
@@ -278,6 +390,12 @@ def fetch_music(force: bool) -> tuple[list[str], list[str]]:
 
 
 def report() -> None:
+    print("Models:")
+    for slug, (_, colormap, props) in MODEL_KITS.items():
+        missing = [d for d in props.values() if not (MODEL_DIR / f"{d}.glb").exists()]
+        if colormap is not None and not (MODEL_TEX_DIR / f"{colormap}.png").exists():
+            missing.append(colormap)
+        print(f"  {slug:22} {'MISSING ' + ' '.join(missing) if missing else 'ok'}")
     print("Textures:")
     for slot in TEXTURE_SLOTS:
         directory = TEX_DIR / slot
@@ -297,6 +415,7 @@ def main() -> int:
     parser.add_argument("--report", action="store_true", help="only report what is present")
     parser.add_argument("--skip-textures", action="store_true")
     parser.add_argument("--skip-audio", action="store_true")
+    parser.add_argument("--skip-models", action="store_true")
     args = parser.parse_args()
 
     if args.report:
@@ -304,6 +423,10 @@ def main() -> int:
         return 0
 
     failures: list[str] = []
+    if not args.skip_models:
+        print("Kenney models (CC0):")
+        _, failed = fetch_models(args.force)
+        failures += failed
     if not args.skip_textures:
         print("Poly Haven textures (CC0):")
         _, failed = fetch_textures(args.force)
