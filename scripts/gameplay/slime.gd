@@ -98,10 +98,18 @@ func _build_body() -> void:
 	pm.color = Color(0.45, 0.95, 0.45, 0.9)
 	_spray.process_material = pm
 	var drop := SphereMesh.new()
-	drop.radius = 0.05
-	drop.height = 0.1
+	drop.radius = 0.06
+	drop.height = 0.12
 	drop.radial_segments = 6
 	drop.rings = 4
+	# The particle material's own colour only reaches the mesh through its
+	# vertex colour, so without this the droplets come out grey and the trail
+	# reads as grit thrown up rather than as slime flicked off.
+	var droplet := StandardMaterial3D.new()
+	droplet.albedo_color = Color(0.45, 0.95, 0.48)
+	droplet.vertex_color_use_as_albedo = true
+	droplet.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	drop.material = droplet
 	_spray.draw_pass_1 = drop
 	add_child(_spray)
 

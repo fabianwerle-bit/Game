@@ -12,7 +12,7 @@ config_version=5
 
 config/name="Slime Cleanup"
 config/description="3D arcade cleanup game. Roll a slime through a living island town, collect litter, bank it at recycling stations, survive the clock and the chaos meter."
-config/version="0.3.0"
+config/version="0.4.0"
 run/main_scene="res://scenes/game.tscn"
 config/features=PackedStringArray("4.6", "Forward Plus")
 boot_splash/bg_color=Color(0.06, 0.09, 0.08, 1)
