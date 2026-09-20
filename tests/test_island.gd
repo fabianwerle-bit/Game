@@ -165,11 +165,26 @@ static func _test_lanes(t: TestSupport, roads: RoadGraph) -> void:
 	# Opposing lanes on the same road must be on opposite sides.
 	var forward := roads.lane_point(0, 1, 0.5)
 	var backward := roads.lane_point(1, 0, 0.5)
-	t.check(forward.distance_to(backward) > RoadGraph.LANE_HALF_WIDTH,
+	var offset := roads.lane_offset(0, 1)
+	t.check(forward.distance_to(backward) > offset,
 			"oncoming traffic uses the other side of the road")
 	var centre := roads.nodes[0].lerp(roads.nodes[1], 0.5)
-	t.near(forward.distance_to(centre), RoadGraph.LANE_HALF_WIDTH, 0.01,
+	t.near(forward.distance_to(centre), offset, 0.01,
 			"lane sits half a carriageway off the centreline")
+
+	# Lanes and pavements scale with the road, so a car on a narrow lane is
+	# not half over the kerb and nobody walks in the gutter of a main road.
+	for edge: RoadGraph.Edge in roads.edges:
+		var half := roads.road_half_width(edge.kind)
+		var lane := roads.lane_offset(edge.a, edge.b)
+		var walk := roads.pavement_offset(edge.a, edge.b)
+		if lane <= 0.0 or lane >= half:
+			t.check(false, "lane on edge %d-%d is off the carriageway" % [edge.a, edge.b])
+			return
+		if walk <= half:
+			t.check(false, "pavement on edge %d-%d is on the road" % [edge.a, edge.b])
+			return
+	t.check(true, "every lane stays on its road and every pavement stays off it")
 
 	# Pavements are further out than the traffic lanes.
 	var pave := roads.pavement_point(0, 1, 0.5, 1)

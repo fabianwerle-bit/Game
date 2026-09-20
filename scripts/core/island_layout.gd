@@ -211,6 +211,24 @@ func district_at(p: Vector2) -> StringName:
 	return best_id
 
 
+## Deterministic scatter across the whole island, for the ground that belongs
+## to no district: the belt between the ring road and the coast.
+func scatter(count: int, rng_seed: int, min_shore_margin: float = 4.0) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	var box := bounds()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = SEED + rng_seed
+	var attempts := 0
+	while out.size() < count and attempts < count * 40:
+		attempts += 1
+		var p := Vector2(
+			rng.randf_range(box.position.x, box.end.x),
+			rng.randf_range(box.position.y, box.end.y))
+		if is_walkable(p, min_shore_margin):
+			out.append(p)
+	return out
+
+
 ## Deterministic scatter of candidate positions inside a district, already
 ## filtered to dry land. Used to seed litter, props and crowds.
 func scatter_in_district(id: StringName, count: int, rng_seed: int,

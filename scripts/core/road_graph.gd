@@ -8,9 +8,19 @@ extends RefCounted
 ## pavements offset further out. Junctions are simply nodes with three or more
 ## edges, and each one hands out a single crossing token so cars take turns.
 
-const LANE_HALF_WIDTH := 2.7
-## Where pedestrians walk. Must clear the carriageway, or the crowd strolls
-## down the middle of the kerb line.
+## Where a lane sits and where people walk, as fractions of the carriageway.
+##
+## Both used to be fixed distances, which was fine while every road was the
+## same width. Now that a lane is narrower than a main road, a fixed offset
+## put cars on a lane half over the kerb and pedestrians in the gutter.
+const LANE_FRACTION := 0.5
+## Clear of the kerb by this much, so the crowd walks on the pavement rather
+## than along the kerb line.
+const PAVEMENT_INSET := 1.0
+
+## Kept for the widest road, so callers with no edge to hand still get a
+## sensible figure.
+const LANE_HALF_WIDTH := 2.1
 const PAVEMENT_OFFSET := 5.2
 
 enum { ROAD_MAIN, ROAD_STREET, ROAD_LANE }
@@ -134,14 +144,19 @@ func is_junction(node: int) -> bool:
 	return degree(node) >= 3
 
 
+## Half the carriageway, per road class.
+##
+## Sized against the buildings rather than against real traffic. A house on
+## this island is six or seven metres wide, and next to that a ten-metre
+## street read as a runway with a town drawn on either side.
 func road_half_width(kind: int) -> float:
 	match kind:
 		ROAD_MAIN:
-			return 4.8
+			return 4.2
 		ROAD_STREET:
-			return 4.0
+			return 3.4
 		_:
-			return 3.2
+			return 2.8
 
 
 func edge_between(a: int, b: int) -> Edge:
@@ -157,7 +172,15 @@ func lane_point(a: int, b: int, t: float) -> Vector2:
 	var pb := nodes[b]
 	var dir := (pb - pa).normalized()
 	var right := Vector2(-dir.y, dir.x)
-	return pa.lerp(pb, clampf(t, 0.0, 1.0)) + right * LANE_HALF_WIDTH
+	return pa.lerp(pb, clampf(t, 0.0, 1.0)) + right * lane_offset(a, b)
+
+
+## How far right of the centreline the lane between `a` and `b` runs.
+func lane_offset(a: int, b: int) -> float:
+	var edge := edge_between(a, b)
+	if edge == null:
+		return LANE_HALF_WIDTH
+	return road_half_width(edge.kind) * LANE_FRACTION
 
 
 ## Pavement line alongside an edge. `side` is +1 or -1.
@@ -166,7 +189,16 @@ func pavement_point(a: int, b: int, t: float, side: int) -> Vector2:
 	var pb := nodes[b]
 	var dir := (pb - pa).normalized()
 	var right := Vector2(-dir.y, dir.x)
-	return pa.lerp(pb, clampf(t, 0.0, 1.0)) + right * PAVEMENT_OFFSET * signf(float(side))
+	return pa.lerp(pb, clampf(t, 0.0, 1.0)) \
+			+ right * pavement_offset(a, b) * signf(float(side))
+
+
+## How far from the centreline people walk alongside the edge `a`-`b`.
+func pavement_offset(a: int, b: int) -> float:
+	var edge := edge_between(a, b)
+	if edge == null:
+		return PAVEMENT_OFFSET
+	return road_half_width(edge.kind) + PAVEMENT_INSET
 
 
 func nearest_node(p: Vector2) -> int:

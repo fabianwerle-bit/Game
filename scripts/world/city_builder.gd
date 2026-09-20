@@ -131,13 +131,16 @@ func build() -> Node3D:
 	station_points.clear()
 	PropBuilder.reset_variants()
 
+	# Order matters: everything with a fixed place claims its ground before
+	# the scatter passes fill in around it. Nature used to run first and take
+	# the whole beach, leaving the parasols and deckchairs nowhere to stand.
 	_reserve_stations()
 	_place_square(root)
 	_place_buildings(root)
-	_place_street_furniture(root)
-	_place_nature(root)
 	_place_harbour(root)
 	_place_beach(root)
+	_place_street_furniture(root)
+	_place_nature(root)
 	return root
 
 
@@ -434,6 +437,28 @@ func _place_street_furniture(root: Node3D) -> void:
 			holder.add_child(node)
 
 
+## How much ground each kind of greenery takes, and how far it keeps off the
+## carriageway. A tree overhangs; a clump of flowers does not.
+const GREENERY := {
+	&"tree": [2.2, 7.6],
+	&"tree_small": [1.5, 7.0],
+	&"palm": [2.6, 7.6],
+	&"bush": [1.1, 6.8],
+	&"flowers": [0.7, 6.6],
+	&"rock": [1.4, 7.0],
+	&"fence": [1.0, 6.8],
+	&"planter": [1.0, 6.6],
+	&"bollard": [0.8, 6.4],
+	&"bench": [1.4, 7.0],
+}
+
+
+## Trees, hedges and flowers, in the districts and in the blocks between them.
+##
+## The claimed radius follows the prop rather than one figure for all of them.
+## With a single generous radius a clump of flowers reserved as much ground as
+## an oak, and the blocks came out as bare lawns with a couple of buildings
+## standing on them.
 func _place_nature(root: Node3D) -> void:
 	var holder := Node3D.new()
 	holder.name = "Nature"
@@ -442,9 +467,10 @@ func _place_nature(root: Node3D) -> void:
 	var plan := {
 		IslandLayout.PARK: [[&"tree", 26], [&"tree_small", 14], [&"bush", 22],
 				[&"flowers", 26], [&"bench", 8]],
-		IslandLayout.SUBURB: [[&"tree", 14], [&"bush", 16], [&"flowers", 14], [&"fence", 10]],
-		IslandLayout.CENTRE: [[&"tree_small", 10], [&"planter", 8], [&"bollard", 12]],
-		IslandLayout.HARBOUR: [[&"rock", 10], [&"bollard", 10], [&"bush", 6]],
+		IslandLayout.SUBURB: [[&"tree", 16], [&"bush", 20], [&"flowers", 20], [&"fence", 12]],
+		IslandLayout.CENTRE: [[&"tree_small", 14], [&"planter", 10], [&"bollard", 12],
+				[&"bush", 14], [&"flowers", 16]],
+		IslandLayout.HARBOUR: [[&"rock", 10], [&"bollard", 10], [&"bush", 8]],
 		IslandLayout.BEACH: [[&"palm", 16], [&"rock", 8], [&"bush", 6]],
 	}
 
@@ -452,19 +478,34 @@ func _place_nature(root: Node3D) -> void:
 		for entry: Array in plan[district]:
 			var what: StringName = entry[0]
 			var count: int = entry[1]
-			var spots := island.scatter_in_district(district, count * 3, int(what.hash()), 5.0)
-			var placed := 0
-			for spot: Vector2 in spots:
-				if placed >= count:
-					break
-				if not _fits(spot, 2.2, 9.0):
-					continue
-				var node := AssetLibrary.model(what)
-				node.position = Vector3(spot.x, IslandLayout.GROUND_Y, spot.y)
-				node.rotation.y = _rng.randf() * TAU
-				holder.add_child(node)
-				_claim(spot, 2.2)
-				placed += 1
+			var spots := island.scatter_in_district(district, count * 8, int(what.hash()), 5.0)
+			_sow(holder, what, spots, count)
+
+	# The belt outside the ring road belongs to no district, and was coming out
+	# as bare grass between the outskirts housing.
+	for entry: Array in [[&"tree", 20], [&"bush", 22], [&"flowers", 24]]:
+		var what: StringName = entry[0]
+		var count: int = entry[1]
+		_sow(holder, what, island.scatter(count * 8, int(what.hash()) + 7, 6.0), count)
+
+
+## Plant up to `count` of `what` on the first spots with room for them.
+func _sow(holder: Node3D, what: StringName, spots: PackedVector2Array, count: int) -> void:
+	var shape: Array = GREENERY.get(what, [2.2, 7.6])
+	var radius: float = shape[0]
+	var clearance: float = shape[1]
+	var placed := 0
+	for spot: Vector2 in spots:
+		if placed >= count:
+			return
+		if not _fits(spot, radius, clearance):
+			continue
+		var node := AssetLibrary.model(what)
+		node.position = Vector3(spot.x, IslandLayout.GROUND_Y, spot.y)
+		node.rotation.y = _rng.randf() * TAU
+		holder.add_child(node)
+		_claim(spot, radius)
+		placed += 1
 
 
 func _place_harbour(root: Node3D) -> void:
@@ -478,7 +519,7 @@ func _place_harbour(root: Node3D) -> void:
 	# Containers stacked along the quay.
 	for i in range(10):
 		var ring := Vector2(cos(float(i) * 1.1), sin(float(i) * 1.1)) \
-				* Vector2(16.0, 13.0) * IslandLayout.SCALE
+				* quay.radius * Vector2(0.62, 0.50)
 		var spot := quay.centre + ring
 		if not _fits(spot, 4.0, 6.0):
 			continue
@@ -495,7 +536,7 @@ func _place_harbour(root: Node3D) -> void:
 			stacked.rotation.y = node.rotation.y
 			holder.add_child(stacked)
 
-	var crane_spot := quay.centre + Vector2(6.0, -12.0) * IslandLayout.SCALE
+	var crane_spot := quay.centre + Vector2(0.24, -0.46) * quay.radius
 	if _fits(crane_spot, 6.0, 7.0):
 		var crane := AssetLibrary.model(&"crane")
 		crane.position = Vector3(crane_spot.x, IslandLayout.GROUND_Y, crane_spot.y)
@@ -523,24 +564,23 @@ func _place_beach(root: Node3D) -> void:
 	if beach == null:
 		return
 
-	# Offsets scale with the island: written as absolute metres they scattered
-	# the whole beach into the sea the moment the map was resized, and the
-	# district came out empty.
-	var spread := 26.0 * IslandLayout.SCALE
-	for i in range(16):
+	# Spread across the district rather than by a figure in metres, so the
+	# beach stays furnished whatever size the island is built at.
+	var spread := beach.radius * 0.8
+	for i in range(44):
 		var spot := beach.centre + Vector2(
 			_rng.randf_range(-spread, spread),
 			_rng.randf_range(-spread * 0.3, spread * 0.8))
 		if not island.is_walkable(spot, 2.0):
 			continue
-		if not _fits(spot, 2.4, 5.0):
+		if not _fits(spot, 2.0, 4.5):
 			continue
 		var what := &"parasol" if _rng.randf() < 0.5 else &"deckchair"
 		var node := AssetLibrary.model(what)
 		node.position = Vector3(spot.x, IslandLayout.GROUND_Y, spot.y)
 		node.rotation.y = _rng.randf() * TAU
 		holder.add_child(node)
-		_claim(spot, 2.4)
+		_claim(spot, 2.0)
 
 
 ## The town square, laid out before any building so it stays open.
