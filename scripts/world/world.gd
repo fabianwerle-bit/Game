@@ -96,9 +96,9 @@ func _build_scene() -> void:
 	var sun := DirectionalLight3D.new()
 	sun.name = "Sun"
 	sun.rotation_degrees = Vector3(-48, 38, 0)
-	# Linear tonemapping clips anything over 1.0 straight to white, so sun and
-	# ambient together have to stay under it or the whole island blows out -
-	# which is exactly what the first cartoon pass did.
+	# Opening values only. Weather owns the sun's angle, colour and energy from
+	# the first frame of the round, and its table is where the light budget is
+	# actually kept - see Weather.PRESETS.
 	sun.light_energy = 0.70
 	sun.light_color = Color(1.0, 0.97, 0.90)
 	sun.shadow_enabled = GameSettings.shadows_enabled()
@@ -122,9 +122,8 @@ func _build_scene() -> void:
 	# in soft shade that turned lawns and pavements turquoise.
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color(0.82, 0.86, 0.94)
-	# Enough fill that shadow sides stay readable, not so much that the
-	# shading flattens out. Sun and fill together stay under 1.0, because
-	# linear tonemapping clips anything above it straight to white.
+	# Opening value; Weather drives this too. The colour it is multiplied by
+	# stays here, because no condition changes it.
 	env.ambient_light_energy = 0.24
 	# Almost no fog: haze is what turned the first pass grey.
 	env.fog_enabled = true
@@ -133,10 +132,6 @@ func _build_scene() -> void:
 	# Filmic tonemapping crushes saturated colour; linear keeps the candy tones.
 	env.tonemap_mode = Environment.TONE_MAPPER_LINEAR
 	env.tonemap_white = 1.0
-	# A touch under one. Pavements and road markings are the brightest things
-	# on the island, and at full exposure they clipped to flat white and took
-	# the shape of the street with them.
-	env.tonemap_exposure = 0.88
 	if GameSettings.tier() >= GameSettings.TIER_MEDIUM:
 		# No SSAO: it greys out exactly the corners the flat look wants clean.
 		env.glow_enabled = true

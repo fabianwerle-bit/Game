@@ -26,6 +26,26 @@ static func run(t: TestSupport) -> void:
 	_test_pedestrian_contract(t)
 	_test_determinism(t)
 	_test_placeholder_reporting(t)
+	_test_light_budget(t)
+
+
+## No weather may light the island past what linear tonemapping can hold.
+##
+## The sun and the ambient fill are both set straight onto the real light and
+## environment, and the brightest surfaces in the game - pavement, road
+## markings, sand - reflect most of what falls on them. Go past one and they
+## clip to flat white and take the shape of the street with them, which is
+## exactly what happened when this table was written without the budget in
+## mind. The margin allows for a surface facing the sun square on.
+static func _test_light_budget(t: TestSupport) -> void:
+	t.suite("weather light budget")
+	var brightest: Color = Palette.MARKING
+	var most := maxf(maxf(brightest.r, brightest.g), brightest.b)
+	for condition: StringName in Weather.PRESETS:
+		var preset: Dictionary = Weather.PRESETS[condition]
+		var total: float = float(preset["energy"]) + float(preset["ambient"])
+		t.check(total * most <= 1.0,
+				"%s does not blow the brightest surface out (%.2f)" % [condition, total * most])
 
 
 static func _count_meshes(node: Node) -> int:

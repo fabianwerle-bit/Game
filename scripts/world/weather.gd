@@ -18,31 +18,42 @@ const ORDER: Array[StringName] = [CLEAR, FAIR, OVERCAST, SUNSET, RAIN]
 
 ## Per condition: sun colour, sun energy, sky top, sky horizon, fog density,
 ## shadow softness, ambient energy.
+##
+## Sun and ambient energy together stay at or below about one. These are set
+## on the real light and environment, replacing whatever the world started
+## with, and the project tonemaps linearly: anything a surface reflects above
+## one clips to flat white. The old table ran at more than twice this, which
+## turned every pavement and road marking on the island into a white band and
+## bleached the lawns to lime.
+##
+## The budget is what makes the weather read at all. A bright day and a
+## downpour differ by how the same total is split between a hard sun and a
+## soft fill, not by how much total light there is.
 const PRESETS := {
 	CLEAR: {
-		"sun": Color(1.0, 0.96, 0.86), "energy": 1.5,
+		"sun": Color(1.0, 0.96, 0.86), "energy": 0.80,
 		"top": Color(0.28, 0.52, 0.86), "horizon": Color(0.72, 0.85, 0.95),
-		"fog": 0.0008, "blur": 0.6, "ambient": 1.0, "angle": -52.0,
+		"fog": 0.0008, "blur": 0.6, "ambient": 0.20, "angle": -52.0,
 	},
 	FAIR: {
-		"sun": Color(1.0, 0.95, 0.88), "energy": 1.25,
+		"sun": Color(1.0, 0.95, 0.88), "energy": 0.70,
 		"top": Color(0.35, 0.55, 0.82), "horizon": Color(0.78, 0.86, 0.92),
-		"fog": 0.0016, "blur": 1.1, "ambient": 1.1, "angle": -48.0,
+		"fog": 0.0016, "blur": 1.1, "ambient": 0.26, "angle": -48.0,
 	},
 	OVERCAST: {
-		"sun": Color(0.88, 0.90, 0.94), "energy": 0.75,
+		"sun": Color(0.88, 0.90, 0.94), "energy": 0.40,
 		"top": Color(0.55, 0.58, 0.63), "horizon": Color(0.74, 0.76, 0.78),
-		"fog": 0.0035, "blur": 2.6, "ambient": 1.35, "angle": -60.0,
+		"fog": 0.0035, "blur": 2.6, "ambient": 0.46, "angle": -60.0,
 	},
 	RAIN: {
-		"sun": Color(0.74, 0.79, 0.88), "energy": 0.5,
+		"sun": Color(0.74, 0.79, 0.88), "energy": 0.28,
 		"top": Color(0.38, 0.42, 0.48), "horizon": Color(0.58, 0.61, 0.65),
-		"fog": 0.0075, "blur": 3.0, "ambient": 1.25, "angle": -65.0,
+		"fog": 0.0075, "blur": 3.0, "ambient": 0.48, "angle": -65.0,
 	},
 	SUNSET: {
-		"sun": Color(1.0, 0.62, 0.34), "energy": 1.35,
+		"sun": Color(1.0, 0.62, 0.34), "energy": 0.74,
 		"top": Color(0.22, 0.30, 0.55), "horizon": Color(0.96, 0.60, 0.34),
-		"fog": 0.0042, "blur": 1.4, "ambient": 0.85, "angle": -12.0,
+		"fog": 0.0042, "blur": 1.4, "ambient": 0.24, "angle": -12.0,
 	},
 }
 
