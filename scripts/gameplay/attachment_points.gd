@@ -8,9 +8,13 @@ extends RefCounted
 ## same place — a piece never jumps once it has stuck. A deterministic jitter
 ## per slot keeps the arrangement from looking like a lattice.
 
-## Fraction of a piece's size that sinks into the body, so litter reads as
+## Fraction of a piece's radius that sinks into the body, so litter reads as
 ## pulled into the gel rather than glued on top.
-const EMBED := 0.34
+##
+## Kept well under half: this used to be applied twice over, which buried
+## every piece so deep that a full load was barely a texture on the surface
+## and the slime read as a plain sphere.
+const EMBED := 0.30
 
 ## Slots are biased towards the upper half: litter stuck to the underside
 ## would be scraped along the pavement.
@@ -44,7 +48,7 @@ static func direction(index: int, total: int) -> Vector3:
 ## of radius `slime_radius`.
 static func position(index: int, total: int, slime_radius: float,
 		item_radius: float) -> Vector3:
-	return direction(index, total) * (slime_radius + item_radius * (1.0 - EMBED * 2.0))
+	return direction(index, total) * (slime_radius + item_radius * (1.0 - EMBED))
 
 
 ## Orientation that lays the piece against the surface: its local up points

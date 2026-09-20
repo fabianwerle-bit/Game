@@ -192,6 +192,17 @@ static func _palette(name: StringName, options: Array) -> Color:
 	return options[h % options.size()]
 
 
+## Record the footprint of a building's walls, ignoring awnings and roof
+## overhangs.
+##
+## The city sets buildings back from the kerb by this, not by their bounding
+## box: a shop's awning reaches almost a metre and a half past its wall, and
+## setting the wall back that far as well left the blocks too shallow to build
+## on from both sides.
+static func set_footprint(node: Node3D, width: float, depth: float) -> void:
+	node.set_meta(&"footprint", Vector2(width, depth))
+
+
 static func _house(name: StringName) -> Node3D:
 	var root := Node3D.new()
 	root.name = "House"
@@ -205,9 +216,12 @@ static func _house(name: StringName) -> Node3D:
 	var trim := material(&"trim", Palette.TRIM, 0.9)
 	var door_mat := clad(MaterialLibrary.WOOD, Color(0.62, 0.40, 0.26), 1.6)
 
-	var w := 6.4
-	var d := 5.6
+	# Narrow enough that two fit side by side along one block frontage, which
+	# is what turns the suburb into a row of houses instead of one per street.
+	var w := 5.8
+	var d := 5.4
 	var h := 3.4
+	set_footprint(root, w, d)
 	root.add_child(_box(Vector3(w, h, d), Vector3(0, h * 0.5, 0), wall))
 	root.add_child(_roof(Vector3(w + 0.5, 2.0, d + 0.5), Vector3(0, h + 1.0, 0), roof))
 	# Door and a step.
@@ -215,9 +229,9 @@ static func _house(name: StringName) -> Node3D:
 	root.add_child(_box(Vector3(1.4, 0.16, 0.6), Vector3(0, 0.08, d * 0.5 + 0.3), trim))
 	# Windows on the front and both sides.
 	var glass := glass_material()
-	for x: float in [-2.0, 2.0]:
-		root.add_child(_box(Vector3(1.1, 1.1, 0.1), Vector3(x, 2.1, d * 0.5 + 0.02), glass))
-		root.add_child(_box(Vector3(1.3, 1.3, 0.06), Vector3(x, 2.1, d * 0.5 - 0.01), trim))
+	for x: float in [-1.7, 1.7]:
+		root.add_child(_box(Vector3(1.0, 1.1, 0.1), Vector3(x, 2.1, d * 0.5 + 0.02), glass))
+		root.add_child(_box(Vector3(1.2, 1.3, 0.06), Vector3(x, 2.1, d * 0.5 - 0.01), trim))
 	for side: float in [-1.0, 1.0]:
 		root.add_child(_box(Vector3(0.1, 1.0, 1.2), Vector3(side * w * 0.5, 2.0, 0), glass))
 	# Chimney.
@@ -237,8 +251,9 @@ static func _shop(name: StringName) -> Node3D:
 	var trim := material(&"shoptrim", Palette.TRIM, 0.9)
 
 	var w := 8.0
-	var d := 6.5
-	var h := 7.0
+	var d := 6.2
+	var h := 5.6
+	set_footprint(root, w, d)
 	root.add_child(_box(Vector3(w, h, d), Vector3(0, h * 0.5, 0), wall))
 	# Flat roof, in a dark roof colour so the silhouette reads from above.
 	root.add_child(_box(Vector3(w + 0.4, 0.5, d + 0.4), Vector3(0, h + 0.25, 0),
@@ -263,11 +278,13 @@ static func _apartment(name: StringName) -> Node3D:
 	var wall := clad(MaterialLibrary.CONCRETE, wall_colour, 3.4)
 	var trim := material(&"blocktrim", Palette.TRIM, 0.9)
 	var glass := glass_material()
-	var floors := 3 + absi(String(name).hash()) % 3
+	# Two to three storeys. Taller blocks turned every street into a canyon.
+	var floors := 2 + absi(String(name).hash()) % 2
 	var w := 7.5
-	var d := 7.0
+	var d := 6.4
 	var fh := 3.0
 	var h := fh * float(floors)
+	set_footprint(root, w, d)
 	root.add_child(_box(Vector3(w, h, d), Vector3(0, h * 0.5, 0), wall))
 	root.add_child(_box(Vector3(w + 0.5, 0.5, d + 0.5), Vector3(0, h + 0.25, 0),
 			clad(&"roof", Palette.roof(name))))
@@ -294,6 +311,7 @@ static func _warehouse(name: StringName) -> Node3D:
 	var w := 11.0
 	var d := 8.0
 	var h := 5.0
+	set_footprint(root, w, d)
 	root.add_child(_box(Vector3(w, h, d), Vector3(0, h * 0.5, 0), wall))
 	root.add_child(_roof(Vector3(w + 0.4, 1.4, d + 0.4), Vector3(0, h + 0.7, 0), roof))
 	# Roller shutter.
@@ -311,6 +329,7 @@ static func _beach_hut(name: StringName) -> Node3D:
 	var colour := Palette.wall(name)
 	var wall := clad(MaterialLibrary.WOOD, colour, 2.2)
 	var roof := clad(MaterialLibrary.WOOD, Color(0.93, 0.93, 0.90), 2.4)
+	set_footprint(root, 2.6, 2.4)
 	root.add_child(_box(Vector3(2.6, 2.4, 2.4), Vector3(0, 1.2, 0), wall))
 	root.add_child(_roof(Vector3(3.0, 0.9, 2.8), Vector3(0, 2.75, 0), roof))
 	root.add_child(_box(Vector3(1.0, 1.7, 0.1), Vector3(0, 0.85, 1.22),
@@ -666,32 +685,49 @@ static func _brake_light(pos: Vector3) -> MeshInstance3D:
 	return light
 
 
+## A toy car: short, tall and round-roofed, on wheels a size too big.
+##
+## Scale-model proportions read as a grey wedge from the chase camera. Pulling
+## the length in, raising the cabin and rounding the roof is what makes it a
+## toy rather than a saloon, and it matches the rest of the island.
 static func _car() -> Node3D:
 	var root := Node3D.new()
 	root.name = "Car"
-	var colours := [Color(0.82, 0.22, 0.20), Color(0.20, 0.42, 0.72), Color(0.95, 0.80, 0.25),
-			Color(0.92, 0.92, 0.92), Color(0.22, 0.55, 0.42), Color(0.30, 0.30, 0.34)]
+	var colours := [Color(0.95, 0.28, 0.26), Color(0.22, 0.52, 0.92), Color(1.0, 0.82, 0.24),
+			Color(0.97, 0.97, 0.95), Color(0.26, 0.76, 0.56), Color(0.78, 0.46, 0.90),
+			Color(1.0, 0.58, 0.26), Color(0.30, 0.78, 0.82)]
 	var c: Color = colours[_next_variant() % colours.size()]
 	var paint := material(StringName("paint_%s" % c.to_html(false)), c, 0.28, 0.35)
-	var trim := material(&"cartrim", Color(0.15, 0.15, 0.17), 0.6, 0.3)
+	var trim := material(&"cartrim", Color(0.16, 0.16, 0.19), 0.6, 0.3)
 	var glass := glass_material()
 
-	root.add_child(_box(Vector3(1.75, 0.62, 4.05), Vector3(0, 0.66, 0), paint))
-	# Cabin, set back and narrower than the body.
-	root.add_child(_box(Vector3(1.55, 0.58, 2.05), Vector3(0, 1.22, -0.16), paint))
-	# Glazing on all four sides.
-	root.add_child(_box(Vector3(1.42, 0.46, 0.08), Vector3(0, 1.24, 0.84), glass))
-	root.add_child(_box(Vector3(1.42, 0.46, 0.08), Vector3(0, 1.24, -1.16), glass))
-	for x: float in [-0.79, 0.79]:
-		root.add_child(_box(Vector3(0.06, 0.42, 1.8), Vector3(x, 1.24, -0.16), glass))
+	# Body, with the corners knocked off by a squashed sphere over the top.
+	root.add_child(_box(Vector3(1.86, 0.74, 3.60), Vector3(0, 0.70, 0), paint))
+	var nose := _sphere(0.93, Vector3(0, 0.72, 1.46), paint, 6, 12)
+	nose.scale = Vector3(1.0, 0.80, 0.42)
+	root.add_child(nose)
+	var tail := _sphere(0.93, Vector3(0, 0.72, -1.46), paint, 6, 12)
+	tail.scale = Vector3(1.0, 0.80, 0.42)
+	root.add_child(tail)
+
+	# Cabin: a dome rather than a second box.
+	var cabin := _sphere(0.86, Vector3(0, 1.12, -0.20), paint, 8, 14)
+	cabin.scale = Vector3(0.92, 0.62, 1.20)
+	root.add_child(cabin)
+	# Glazing wrapped round the cabin.
+	root.add_child(_box(Vector3(1.40, 0.44, 0.08), Vector3(0, 1.22, 0.80), glass))
+	root.add_child(_box(Vector3(1.40, 0.44, 0.08), Vector3(0, 1.22, -1.16), glass))
+	for x: float in [-0.76, 0.76]:
+		root.add_child(_box(Vector3(0.06, 0.40, 1.72), Vector3(x, 1.22, -0.18), glass))
+
 	# Bumpers and lights.
-	root.add_child(_box(Vector3(1.78, 0.18, 0.16), Vector3(0, 0.46, 2.0), trim))
-	root.add_child(_box(Vector3(1.78, 0.18, 0.16), Vector3(0, 0.46, -2.0), trim))
-	for x: float in [-0.62, 0.62]:
-		root.add_child(_box(Vector3(0.3, 0.14, 0.08), Vector3(x, 0.78, 2.02),
-				material(&"headlight", Color(0.96, 0.95, 0.85), 0.15)))
-		root.add_child(_brake_light(Vector3(x, 0.78, -2.02)))
-	_add_wheels(root, 0.84, 1.32, -1.32, 0.34, 0.24, 0.34)
+	root.add_child(_box(Vector3(1.80, 0.20, 0.18), Vector3(0, 0.44, 1.76), trim))
+	root.add_child(_box(Vector3(1.80, 0.20, 0.18), Vector3(0, 0.44, -1.76), trim))
+	for x: float in [-0.60, 0.60]:
+		root.add_child(_sphere(0.15, Vector3(x, 0.80, 1.72),
+				material(&"headlight", Color(0.99, 0.97, 0.88), 0.15), 5, 8))
+		root.add_child(_brake_light(Vector3(x, 0.80, -1.76)))
+	_add_wheels(root, 0.88, 1.16, -1.16, 0.42, 0.26, 0.42)
 	return root
 
 
@@ -788,67 +824,88 @@ static func _bicycle() -> Node3D:
 ## a walk cycle, so this is a posable body rather than a static silhouette.
 ## It is still stand-in geometry: a rigged, skinned character is the intended
 ## replacement and drops straight in as `assets/models/pedestrian.glb`.
+## A townsperson, built chibi rather than to scale.
+##
+## Real proportions made a crowd of grey matchsticks at the distance the chase
+## camera sits at. Big head, short stubby limbs and a strong shirt colour is
+## what makes a person readable from ten metres up a street - and it is the
+## look the rest of the island is drawn in.
+##
+## The rig keeps the node names the pedestrian AI animates: Hips, Torso, Head,
+## ArmLeft, ArmRight, LegLeft, LegRight and HandSocket.
 static func _pedestrian() -> Node3D:
 	var root := Node3D.new()
 	root.name = "Pedestrian"
-	var skins := [Color(0.92, 0.76, 0.62), Color(0.76, 0.58, 0.44),
-			Color(0.55, 0.39, 0.28), Color(0.36, 0.25, 0.18), Color(0.96, 0.84, 0.72)]
-	var shirts := [Color(0.85, 0.32, 0.30), Color(0.25, 0.45, 0.75), Color(0.95, 0.80, 0.30),
-			Color(0.35, 0.65, 0.45), Color(0.70, 0.45, 0.80), Color(0.95, 0.95, 0.95)]
-	var trousers := [Color(0.25, 0.28, 0.38), Color(0.40, 0.35, 0.30), Color(0.18, 0.20, 0.24),
-			Color(0.55, 0.50, 0.45)]
+	var skins := [Color(0.98, 0.80, 0.66), Color(0.86, 0.64, 0.48),
+			Color(0.64, 0.44, 0.31), Color(0.42, 0.29, 0.21), Color(1.0, 0.87, 0.76)]
+	var shirts := [Color(0.94, 0.34, 0.32), Color(0.24, 0.52, 0.88), Color(1.0, 0.82, 0.26),
+			Color(0.32, 0.74, 0.48), Color(0.76, 0.46, 0.90), Color(0.99, 0.99, 0.96),
+			Color(1.0, 0.56, 0.28), Color(0.26, 0.80, 0.78)]
+	var trousers := [Color(0.28, 0.34, 0.52), Color(0.52, 0.42, 0.32), Color(0.20, 0.22, 0.28),
+			Color(0.66, 0.60, 0.54)]
+	var hairs := [Color(0.14, 0.11, 0.09), Color(0.52, 0.34, 0.16), Color(0.72, 0.66, 0.58),
+			Color(0.80, 0.42, 0.20)]
 	var t := _next_variant()
 	var skin := material(StringName("skin%d" % (t % skins.size())), skins[t % skins.size()], 0.85)
 	var shirt := material(StringName("shirt%d" % (t % shirts.size())), shirts[t % shirts.size()], 0.9)
 	var trouser := material(StringName("trouser%d" % (t % trousers.size())),
 			trousers[t % trousers.size()], 0.9)
-	var shoe := material(&"shoe", Color(0.16, 0.14, 0.13), 0.8)
+	var hair := material(StringName("hair%d" % (t % hairs.size())), hairs[t % hairs.size()], 0.95)
+	var shoe := material(&"shoe", Color(0.18, 0.16, 0.15), 0.8)
+	var eye := material(&"pedeye", Color(0.09, 0.09, 0.12), 0.3)
 
-	# Build heights vary so a crowd is not one silhouette repeated.
-	var build := 0.9 + 0.22 * float(t % 5) / 4.0
-	root.scale = Vector3.ONE * build
+	# A little variety in build so a crowd is not one silhouette repeated.
+	root.scale = Vector3.ONE * (0.92 + 0.20 * float(t % 5) / 4.0)
 
 	var hips := Node3D.new()
 	hips.name = "Hips"
-	hips.position = Vector3(0, 0.92, 0)
+	hips.position = Vector3(0, 0.42, 0)
 	root.add_child(hips)
 
 	var torso := Node3D.new()
 	torso.name = "Torso"
 	hips.add_child(torso)
-	torso.add_child(_box(Vector3(0.40, 0.58, 0.22), Vector3(0, 0.29, 0), shirt))
-	torso.add_child(_box(Vector3(0.34, 0.14, 0.2), Vector3(0, -0.04, 0), trouser))
+	# A rounded body: a short barrel with a sphere capping each end.
+	torso.add_child(_cylinder(0.18, 0.30, Vector3(0, 0.17, 0), shirt, 10))
+	torso.add_child(_sphere(0.18, Vector3(0, 0.32, 0), shirt, 6, 10))
+	torso.add_child(_sphere(0.175, Vector3(0, 0.03, 0), trouser, 5, 10))
 
 	var head := Node3D.new()
 	head.name = "Head"
-	head.position = Vector3(0, 0.70, 0)
+	head.position = Vector3(0, 0.44, 0)
 	torso.add_child(head)
-	head.add_child(_sphere(0.135, Vector3(0, 0.09, 0), skin, 6, 10))
-	head.add_child(_box(Vector3(0.26, 0.1, 0.26), Vector3(0, 0.19, 0),
-			material(StringName("hair%d" % (t % 4)),
-			[Color(0.16, 0.12, 0.10), Color(0.45, 0.32, 0.18), Color(0.60, 0.55, 0.50),
-			Color(0.25, 0.18, 0.14)][t % 4], 0.95)))
+	# Head is deliberately oversized; that is most of what reads as cartoon.
+	head.add_child(_sphere(0.23, Vector3(0, 0.20, 0), skin, 8, 12))
+	# Hair as a cap sitting over the crown and down the back.
+	var cap := _sphere(0.235, Vector3(0, 0.235, -0.015), hair, 8, 12)
+	cap.scale = Vector3(1.0, 0.72, 1.0)
+	head.add_child(cap)
+	for side: float in [-1.0, 1.0]:
+		head.add_child(_sphere(0.036, Vector3(side * 0.085, 0.20, 0.205), eye, 4, 8))
 
 	for side: Array in [["ArmLeft", -1.0], ["ArmRight", 1.0]]:
 		var arm := Node3D.new()
 		arm.name = side[0]
-		arm.position = Vector3(float(side[1]) * 0.25, 0.5, 0)
+		arm.position = Vector3(float(side[1]) * 0.185, 0.28, 0)
 		torso.add_child(arm)
-		arm.add_child(_box(Vector3(0.11, 0.46, 0.12), Vector3(0, -0.23, 0), shirt))
-		arm.add_child(_sphere(0.065, Vector3(0, -0.48, 0), skin, 4, 8))
+		arm.add_child(_cylinder(0.055, 0.24, Vector3(0, -0.12, 0), shirt, 8))
+		arm.add_child(_sphere(0.068, Vector3(0, -0.25, 0), skin, 5, 8))
 
 	for side: Array in [["LegLeft", -1.0], ["LegRight", 1.0]]:
 		var leg := Node3D.new()
 		leg.name = side[0]
-		leg.position = Vector3(float(side[1]) * 0.11, 0.0, 0)
+		leg.position = Vector3(float(side[1]) * 0.085, 0.0, 0)
 		hips.add_child(leg)
-		leg.add_child(_box(Vector3(0.14, 0.86, 0.15), Vector3(0, -0.43, 0), trouser))
-		leg.add_child(_box(Vector3(0.15, 0.09, 0.26), Vector3(0, -0.88, 0.04), shoe))
+		leg.add_child(_cylinder(0.062, 0.32, Vector3(0, -0.16, 0), trouser, 8))
+		# Big round shoes, which is what stops stubby legs looking cut off.
+		var boot := _sphere(0.085, Vector3(0, -0.345, 0.03), shoe, 5, 8)
+		boot.scale = Vector3(1.0, 0.72, 1.35)
+		leg.add_child(boot)
 
 	# Empty hand socket: whatever the pedestrian is about to drop is parented here.
 	var hand := Node3D.new()
 	hand.name = "HandSocket"
-	hand.position = Vector3(0.25, 0.48, 0.12)
+	hand.position = Vector3(0.20, 0.16, 0.14)
 	torso.add_child(hand)
 	return root
 

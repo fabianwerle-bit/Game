@@ -28,6 +28,7 @@ var _toast_label: Label
 var _phase_label: Label
 var _weather_label: Label
 var _arrow: Control
+var _minimap: IslandMap
 
 var _toast_time: float = 0.0
 var _combo_scale: float = 1.0
@@ -48,19 +49,30 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_build_top()
 	_build_bottom()
+	_build_minimap()
 	_build_arrow()
 
 
+## A rounded translucent pill.
+##
+## The head-up display used to sit on one near-opaque slab across the top
+## fifth of the screen, which read as a grey lid over the game. Thin, rounded
+## and see-through leaves the island visible underneath.
 func _panel(colour: Color) -> StyleBoxFlat:
 	var box := StyleBoxFlat.new()
 	box.bg_color = colour
-	box.corner_radius_top_left = 18
-	box.corner_radius_top_right = 18
-	box.corner_radius_bottom_left = 18
-	box.corner_radius_bottom_right = 18
-	box.content_margin_left = 18
-	box.content_margin_right = 18
-	box.content_margin_top = 12
+	box.corner_radius_top_left = 28
+	box.corner_radius_top_right = 28
+	box.corner_radius_bottom_left = 28
+	box.corner_radius_bottom_right = 28
+	box.border_width_bottom = 2
+	box.border_width_top = 2
+	box.border_width_left = 2
+	box.border_width_right = 2
+	box.border_color = Color(1.0, 1.0, 1.0, 0.16)
+	box.content_margin_left = 20
+	box.content_margin_right = 20
+	box.content_margin_top = 10
 	box.content_margin_bottom = 12
 	return box
 
@@ -80,8 +92,8 @@ func _make_bar(fill: Color) -> ProgressBar:
 	bar.show_percentage = false
 	bar.min_value = 0.0
 	bar.max_value = 1.0
-	bar.custom_minimum_size = Vector2(0, 18)
-	bar.add_theme_stylebox_override("background", _bar_style(Color(0, 0, 0, 0.35)))
+	bar.custom_minimum_size = Vector2(0, 16)
+	bar.add_theme_stylebox_override("background", _bar_style(Color(0.02, 0.06, 0.05, 0.45)))
 	bar.add_theme_stylebox_override("fill", _bar_style(fill))
 	return bar
 
@@ -93,9 +105,9 @@ func _build_top() -> void:
 	panel.offset_left = 24
 	panel.offset_right = -24
 	panel.offset_top = 28
-	panel.offset_bottom = 250
+	panel.offset_bottom = 236
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	panel.add_theme_stylebox_override("panel", _panel(Color(0.05, 0.10, 0.09, 0.62)))
+	panel.add_theme_stylebox_override("panel", _panel(Color(0.05, 0.13, 0.11, 0.52)))
 	add_child(panel)
 
 	var column := VBoxContainer.new()
@@ -111,7 +123,9 @@ func _build_top() -> void:
 	_score_label = Label.new()
 	_score_label.text = "0"
 	_score_label.add_theme_font_size_override("font_size", 64)
-	_score_label.add_theme_color_override("font_color", Color(0.85, 1.0, 0.86))
+	_score_label.add_theme_color_override("font_color", Color(0.95, 1.0, 0.92))
+	_score_label.add_theme_color_override("font_outline_color", Color(0.06, 0.16, 0.12))
+	_score_label.add_theme_constant_override("outline_size", 7)
 	_score_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	score_row.add_child(_score_label)
 
@@ -132,6 +146,8 @@ func _build_top() -> void:
 	_time_label.text = "60.0"
 	_time_label.add_theme_font_size_override("font_size", 40)
 	_time_label.custom_minimum_size = Vector2(130, 0)
+	_time_label.add_theme_color_override("font_outline_color", Color(0.06, 0.16, 0.12))
+	_time_label.add_theme_constant_override("outline_size", 6)
 	time_row.add_child(_time_label)
 
 	_time_bar = _make_bar(Color(0.45, 0.90, 0.52))
@@ -214,13 +230,56 @@ func _build_bottom() -> void:
 	pause.name = "Pause"
 	pause.text = "II"
 	pause.set_anchors_preset(Control.PRESET_TOP_RIGHT, false)
-	pause.offset_left = -116
-	pause.offset_right = -28
+	pause.offset_left = -404
+	pause.offset_right = -308
 	pause.offset_top = 268
-	pause.offset_bottom = 356
+	pause.offset_bottom = 364
 	pause.add_theme_font_size_override("font_size", 34)
 	pause.pressed.connect(func(): pause_pressed.emit())
 	add_child(pause)
+
+
+## A small island map under the top panel.
+##
+## Five districts on an island this size are easy to get lost in, and having
+## to pause the round to look at the full map is no help while the timer is
+## running. This is the same map widget in compact mode, so the two can never
+## disagree about where anything is.
+func _build_minimap() -> void:
+	var frame := PanelContainer.new()
+	frame.name = "MiniMapFrame"
+	frame.set_anchors_preset(Control.PRESET_TOP_RIGHT, false)
+	frame.offset_left = -282
+	frame.offset_right = -24
+	frame.offset_top = 268
+	frame.offset_bottom = 492
+	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var box := _panel(Color(0.06, 0.14, 0.12, 0.42))
+	box.content_margin_left = 6
+	box.content_margin_right = 6
+	box.content_margin_top = 6
+	box.content_margin_bottom = 6
+	frame.add_theme_stylebox_override("panel", box)
+	add_child(frame)
+
+	_minimap = IslandMap.new()
+	_minimap.name = "MiniMap"
+	_minimap.compact = true
+	_minimap.show_player = true
+	_minimap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_minimap.clip_contents = true
+	frame.add_child(_minimap)
+
+
+func _update_minimap() -> void:
+	if _minimap == null or _world == null or _world.slime == null:
+		return
+	var at := _world.slime.global_position
+	_minimap.player_position = Vector2(at.x, at.z)
+	var facing := -_world.slime.global_transform.basis.z
+	_minimap.player_heading = Vector2(facing.x, facing.z)
+	_minimap.station_markers = _world.station_markers()
+	_minimap.queue_redraw()
 
 
 ## Arrow pointing at the nearest open station, drawn just under the top panel.
@@ -278,6 +337,7 @@ func _process(delta: float) -> void:
 	_update_combo(delta, rules)
 	_update_toast(delta)
 	_update_arrow()
+	_update_minimap()
 
 
 ## Under ten seconds the timer pulses red and beeps once a second.

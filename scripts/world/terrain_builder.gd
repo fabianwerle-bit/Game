@@ -17,7 +17,7 @@ const BEACH_START := 0.62
 
 const ROAD_LIFT := 0.05
 const PAVEMENT_LIFT := 0.13
-const PAVEMENT_WIDTH := 1.6
+const PAVEMENT_WIDTH := 2.0
 
 
 static func build_ground(island: IslandLayout) -> Node3D:

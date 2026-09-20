@@ -16,14 +16,25 @@ const OUT_DIR := "user://shots"
 
 ## Frames before the round starts, and between gameplay shots.
 const SETTLE := 40
-const SHOT_INTERVAL := 90
-const GAMEPLAY_SHOTS := 6
+const SHOT_INTERVAL := 70
+const GAMEPLAY_SHOTS := 4
+
+## Fixed vantage points taken after the gameplay shots, with the world frozen.
+## Framing the town square and one street from above is what actually shows
+## whether the city reads as open, which a chase camera at ground level does
+## not.
+const VIEWS := [
+	{"name": "05_square", "from": Vector3(16, 26, 46), "at": Vector3(16, 0, 12)},
+	{"name": "06_street", "from": Vector3(34, 14, 34), "at": Vector3(2, 1, 2)},
+	{"name": "07_island", "from": Vector3(0, 108, 112), "at": Vector3(0, 0, 0)},
+]
 
 var _game: Node
 var _frames: int = 0
 var _shot: int = 0
 var _taken: Array[String] = []
 var _overview_done := false
+var _view_frame: int = 0
 
 
 func _init() -> void:
@@ -121,19 +132,25 @@ func _process(_delta: float) -> bool:
 			_capture("%02d_gameplay" % _shot)
 		return false
 
+	# Fixed views, one every few frames so the renderer has settled before
+	# each capture.
 	if not _overview_done:
 		_release()
 		# Freeze the world so the camera can be moved without it fighting back.
 		world.set_process(false)
-		world.camera.global_position = Vector3(0, 95, 98)
-		world.camera.look_at(Vector3.ZERO, Vector3.UP)
 		_overview_done = true
+		_view_frame = _frames
 		return false
 
-	if _frames % 8 == 0:
-		_capture("07_island")
+	var index := int((_frames - _view_frame) / 8)
+	if index >= VIEWS.size():
 		_report()
 		return true
+	var view: Dictionary = VIEWS[index]
+	world.camera.global_position = view["from"]
+	world.camera.look_at(view["at"], Vector3.UP)
+	if (_frames - _view_frame) % 8 == 7:
+		_capture(view["name"])
 	return false
 
 

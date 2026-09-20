@@ -131,27 +131,31 @@ func _build_face() -> void:
 	for side: float in [-1.0, 1.0]:
 		var eye := MeshInstance3D.new()
 		var eye_mesh := SphereMesh.new()
-		eye_mesh.radius = 0.30
-		eye_mesh.height = 0.60
+		eye_mesh.radius = 0.34
+		eye_mesh.height = 0.68
 		eye_mesh.radial_segments = 14
 		eye_mesh.rings = 9
 		eye.mesh = eye_mesh
 		eye.material_override = white
-		# Just proud of the surface. Set any deeper and the gel swallows them:
-		# the body is a unit sphere here, so anything below ~0.9 is inside it.
-		eye.position = Vector3(side * 0.33, 0.28, 0.86)
+		# Set wide on the flanks rather than flat on the front. The camera
+		# chases from behind, and eyes placed on the nose were never once
+		# visible in play - the slime read as a bare ball. Out here they
+		# catch the silhouette from three quarters and from behind.
+		# The body is a unit sphere at this point, so anything much below
+		# 0.9 from the centre is swallowed by the gel.
+		eye.position = Vector3(side * 0.56, 0.36, 0.66)
 		eye.name = "Eye%s" % ("L" if side < 0.0 else "R")
 		_face_root.add_child(eye)
 
 		var pupil := MeshInstance3D.new()
 		var pupil_mesh := SphereMesh.new()
-		pupil_mesh.radius = 0.17
-		pupil_mesh.height = 0.34
+		pupil_mesh.radius = 0.19
+		pupil_mesh.height = 0.38
 		pupil_mesh.radial_segments = 10
 		pupil_mesh.rings = 7
 		pupil.mesh = pupil_mesh
 		pupil.material_override = pupil_mat
-		pupil.position = Vector3(side * 0.33, 0.26, 1.02)
+		pupil.position = Vector3(side * 0.64, 0.33, 0.78)
 		pupil.name = "Pupil%s" % ("L" if side < 0.0 else "R")
 		_face_root.add_child(pupil)
 
@@ -163,8 +167,8 @@ func _build_face() -> void:
 	mouth_mesh.rings = 7
 	mouth.mesh = mouth_mesh
 	mouth.material_override = mouth_mat
-	mouth.position = Vector3(0, -0.20, 1.0)
-	mouth.scale = Vector3(1.0, 0.45, 0.35)
+	mouth.position = Vector3(0, -0.22, 0.99)
+	mouth.scale = Vector3(1.5, 0.55, 0.35)
 	mouth.name = "Mouth"
 	_face_root.add_child(mouth)
 

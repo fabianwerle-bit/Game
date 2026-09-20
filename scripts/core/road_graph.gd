@@ -8,10 +8,10 @@ extends RefCounted
 ## pavements offset further out. Junctions are simply nodes with three or more
 ## edges, and each one hands out a single crossing token so cars take turns.
 
-const LANE_HALF_WIDTH := 1.9
+const LANE_HALF_WIDTH := 2.7
 ## Where pedestrians walk. Must clear the carriageway, or the crowd strolls
 ## down the middle of the kerb line.
-const PAVEMENT_OFFSET := 4.8
+const PAVEMENT_OFFSET := 5.2
 
 enum { ROAD_MAIN, ROAD_STREET, ROAD_LANE }
 
@@ -40,38 +40,44 @@ func _init() -> void:
 
 
 func _build() -> void:
-	# A compact grid. Written in final metres rather than scaled from a larger
-	# layout: the point of the smaller island is tighter blocks, and uniformly
-	# shrinking a wide-street plan just leaves streets too narrow to build
-	# along. Twenty metres between parallel streets leaves room for a building
-	# set back from each side without the two overlapping.
+	# A grid of 32 m blocks around a central square, a ring road, and spurs out
+	# to each district. Written in final metres rather than scaled from a
+	# larger layout.
+	#
+	# The spacing is set by arithmetic, not taste. A building fronts the street
+	# at kerb + FRONT_MARGIN and is about eight metres deep, so a block needs
+	# 2 * (6.0 + 1.4) + 2 * 8.0 = roughly 31 m before two facing rows stop
+	# overlapping. At 26 m they did overlap, and the second row was rejected
+	# wholesale: every street was built up on one side and bare on the other,
+	# which is exactly the lopsided, hemmed-in look this is meant to fix.
+	# Anything much wider and the blocks read as empty fields instead.
 	nodes = PackedVector2Array([
-		Vector2(0, 0),        # 0  centre plaza
-		Vector2(0, -26),      # 1
-		Vector2(26, 0),       # 2
-		Vector2(0, 26),       # 3
-		Vector2(-26, 0),      # 4
-		Vector2(26, -26),     # 5
-		Vector2(26, 26),      # 6
-		Vector2(-26, 26),     # 7
-		Vector2(-26, -26),    # 8
-		Vector2(0, -42),      # 9  ring north, clear of the harbour inlet
-		Vector2(33, -33),     # 10
-		Vector2(47, 0),       # 11 ring east
-		Vector2(33, 33),      # 12
-		Vector2(0, 47),       # 13 ring south
-		Vector2(-33, 33),     # 14
-		Vector2(-47, 0),      # 15 ring west
-		Vector2(-33, -33),    # 16
-		Vector2(-16, -48),    # 17 harbour quay, beside the inlet
-		Vector2(-36, -40),    # 18 harbour west
-		Vector2(16, 58),      # 19 beach promenade east
-		Vector2(-5, 56),      # 20 beach promenade west
-		Vector2(-57, 5),      # 21 suburb centre
-		Vector2(-60, -16),    # 22 suburb north
-		Vector2(-54, 26),     # 23 suburb south
-		Vector2(51, 22),      # 24 park entrance
-		Vector2(56, 7),       # 25 park east
+		Vector2(0, 0),        # 0  centre crossroads
+		Vector2(0, -32),      # 1
+		Vector2(32, 0),       # 2
+		Vector2(0, 32),       # 3
+		Vector2(-32, 0),      # 4
+		Vector2(32, -32),     # 5
+		Vector2(32, 32),      # 6
+		Vector2(-32, 32),     # 7
+		Vector2(-32, -32),    # 8
+		Vector2(4, -52),      # 9  ring north, pulled in off the harbour shore
+		Vector2(43, -43),     # 10
+		Vector2(60, 0),       # 11 ring east
+		Vector2(43, 43),      # 12
+		Vector2(0, 60),       # 13 ring south
+		Vector2(-43, 43),     # 14
+		Vector2(-60, 0),      # 15 ring west
+		Vector2(-43, -43),    # 16
+		Vector2(-18, -58),    # 17 harbour quay
+		Vector2(-42, -48),    # 18 harbour west
+		Vector2(18, 66),      # 19 beach promenade east
+		Vector2(-6, 64),      # 20 beach promenade west
+		Vector2(-64, 6),      # 21 suburb centre
+		Vector2(-66, -18),    # 22 suburb north
+		Vector2(-60, 28),     # 23 suburb south
+		Vector2(52, 24),      # 24 park entrance
+		Vector2(58, 8),       # 25 park east
 	])
 
 	var main := [
@@ -131,11 +137,11 @@ func is_junction(node: int) -> bool:
 func road_half_width(kind: int) -> float:
 	match kind:
 		ROAD_MAIN:
-			return 4.4
+			return 4.8
 		ROAD_STREET:
-			return 3.6
+			return 4.0
 		_:
-			return 3.0
+			return 3.2
 
 
 func edge_between(a: int, b: int) -> Edge:
@@ -189,6 +195,25 @@ func is_on_road(p: Vector2) -> bool:
 		if _point_segment_distance(p, nodes[e.a], nodes[e.b]) <= road_half_width(e.kind):
 			return true
 	return false
+
+
+## Closest point on the whole network to `p`, for orienting a building towards
+## the street it fronts onto.
+func nearest_road_point(p: Vector2) -> Vector2:
+	var best := Vector2.ZERO
+	var best_d := INF
+	for e: Edge in edges:
+		var a := nodes[e.a]
+		var b := nodes[e.b]
+		var ab := b - a
+		var len_sq := ab.length_squared()
+		var t := 0.0 if len_sq < 0.000001 else clampf((p - a).dot(ab) / len_sq, 0.0, 1.0)
+		var on := a + ab * t
+		var d := p.distance_squared_to(on)
+		if d < best_d:
+			best_d = d
+			best = on
+	return best
 
 
 func _point_segment_distance(p: Vector2, a: Vector2, b: Vector2) -> float:

@@ -14,21 +14,99 @@ extends RefCounted
 ## clears the pavement instead of the centre point clearing it.
 const SETBACK := 8.0
 
-## Gap between the back of the pavement and the front wall.
-const FRONT_MARGIN := 0.9
-const PLOT_SPACING := 8.5
-## Half the minimum distance between two buildings. Must stay below half
-## PLOT_SPACING or neighbouring plots on the same street reject each other.
-const MIN_GAP := 0.8
+## Forecourt between the back of the pavement and the front wall. Wide enough
+## to walk along and to read as a front garden; buildings hard against the
+## kerb turn every street into a canyon.
+const FRONT_MARGIN := 1.6
+
+## Step between plots along a street. The plot itself is only as wide as the
+## building, so this sets how far apart their centres start out, and the
+## footprint test decides whether the pair actually fits.
+const PLOT_SPACING := 8.2
+
+## Clear ground either side of a building, so a street is a row of houses
+## rather than one long wall.
+const MIN_GAP := 0.9
+
+## Clear ground behind a building, so two rows facing opposite streets keep
+## their back yards to themselves.
+const BACK_GAP := 0.8
+
+## How far a plot stays back from a junction, beyond the cross street's own
+## kerb. Corners want open pavement, not a building wedged into them.
+const CORNER_CLEARANCE := 2.0
+
+## How often a plot is left empty, which is what turns a solid frontage into
+## a street with air in it.
+const GAP_CHANCE := 0.12
+
+## The block north-east of the central crossroads, kept clear as a square.
+const SQUARE_CENTRE := Vector2(16.0, 16.0)
+const SQUARE_RADIUS := 11.0
 
 
+## One claimed piece of ground. Either a circle (props, trees, stations) or an
+## oriented rectangle (buildings, which stand square to their street).
+##
+## Buildings used to claim a circle around the whole footprint, and that circle
+## is far larger than the building. Two houses facing each other across a block
+## rejected one another although their walls were metres apart, so every street
+## came out built up on one side only. The rectangle is what the building
+## actually occupies.
 class Placement extends RefCounted:
 	var position: Vector2
+	## Bounding radius, used to reject distant pairs before the real test.
 	var radius: float
+	## Half extents along `right` and `forward`; zero for a circle.
+	var half: Vector2 = Vector2.ZERO
+	var right: Vector2 = Vector2.RIGHT
+	var forward: Vector2 = Vector2.UP
 
 	func _init(p: Vector2, r: float) -> void:
 		position = p
 		radius = r
+
+	static func box(p: Vector2, p_half: Vector2, p_forward: Vector2) -> Placement:
+		var made := Placement.new(p, p_half.length())
+		made.half = p_half
+		made.forward = p_forward.normalized()
+		made.right = Vector2(made.forward.y, -made.forward.x)
+		return made
+
+	func is_box() -> bool:
+		return half != Vector2.ZERO
+
+	## Half the width of this shape's shadow on `axis`, measured from centre.
+	func extent_on(axis: Vector2) -> float:
+		if not is_box():
+			return radius
+		return absf(right.dot(axis)) * half.x + absf(forward.dot(axis)) * half.y
+
+
+## Separating-axis test. Two shapes overlap unless some axis exists on which
+## their shadows come apart.
+static func _overlaps(a: Placement, b: Placement) -> bool:
+	var between := b.position - a.position
+	var gap := between.length()
+	if gap > a.radius + b.radius:
+		return false
+	if not a.is_box() and not b.is_box():
+		return true
+	var axes: Array[Vector2] = []
+	if a.is_box():
+		axes.append(a.right)
+		axes.append(a.forward)
+	if b.is_box():
+		axes.append(b.right)
+		axes.append(b.forward)
+	# A circle's worst case against a box is the line between the two centres.
+	if not a.is_box() or not b.is_box():
+		if gap > 0.0001:
+			axes.append(between / gap)
+	for axis: Vector2 in axes:
+		if absf(between.dot(axis)) > a.extent_on(axis) + b.extent_on(axis):
+			return false
+	return true
 
 
 var island: IslandLayout
@@ -54,12 +132,12 @@ func build() -> Node3D:
 	PropBuilder.reset_variants()
 
 	_reserve_stations()
+	_place_square(root)
 	_place_buildings(root)
 	_place_street_furniture(root)
 	_place_nature(root)
 	_place_harbour(root)
 	_place_beach(root)
-	_place_centre_features(root)
 	return root
 
 
@@ -104,6 +182,17 @@ static func _local_bounds(node: Node) -> AABB:
 	return box
 
 
+## A building's walls on the ground, as (width, depth).
+##
+## Models record their own; anything else falls back to its bounding box,
+## which for a prop with an overhang is a little generous.
+static func _footprint(node: Node3D) -> Vector2:
+	if node.has_meta(&"footprint"):
+		return node.get_meta(&"footprint")
+	var box := _local_bounds(node)
+	return Vector2(box.size.x, box.size.z)
+
+
 static func _meshes(node: Node) -> Array:
 	var out: Array = []
 	if node is MeshInstance3D:
@@ -114,18 +203,31 @@ static func _meshes(node: Node) -> Array:
 
 
 func _fits(p: Vector2, radius: float, road_clearance: float) -> bool:
-	if not island.is_walkable(p, 5.0):
+	return _fits_shape(Placement.new(p, radius), road_clearance)
+
+
+## As `_fits`, for a rectangle standing square to its street.
+func _fits_box(p: Vector2, half: Vector2, forward: Vector2, road_clearance: float) -> bool:
+	return _fits_shape(Placement.box(p, half, forward), road_clearance)
+
+
+func _fits_shape(shape: Placement, road_clearance: float) -> bool:
+	if not island.is_walkable(shape.position, 5.0):
 		return false
-	if roads.distance_to_road(p) < road_clearance:
+	if roads.distance_to_road(shape.position) < road_clearance:
 		return false
 	for other: Placement in _taken:
-		if p.distance_to(other.position) < radius + other.radius:
+		if _overlaps(shape, other):
 			return false
 	return true
 
 
 func _claim(p: Vector2, radius: float) -> void:
 	_taken.append(Placement.new(p, radius))
+
+
+func _claim_box(p: Vector2, half: Vector2, forward: Vector2) -> void:
+	_taken.append(Placement.box(p, half, forward))
 
 
 ## Stations are claimed first so a building never takes their spot. One per
@@ -157,8 +259,16 @@ func _reserve_stations() -> void:
 		station_points.append({"district": district, "position": spot})
 
 
+## What gets built where. The park is left to its trees.
+##
+## The belt outside the ring road belongs to no district, and used to be given
+## the town centre's shops and apartment blocks - a parade of shopfronts facing
+## open fields. It gets outskirts housing instead, with the occasional corner
+## shop.
 func _building_names(district: StringName) -> Array[StringName]:
 	match district:
+		IslandLayout.CENTRE:
+			return [&"shop0", &"shop1", &"shop2", &"block0", &"block1"]
 		IslandLayout.SUBURB:
 			return [&"house0", &"house1", &"house2", &"house3"]
 		IslandLayout.HARBOUR:
@@ -168,9 +278,17 @@ func _building_names(district: StringName) -> Array[StringName]:
 		IslandLayout.PARK:
 			return []
 		_:
-			return [&"shop0", &"shop1", &"shop2", &"block0", &"block1"]
+			return [&"house0", &"house1", &"house2", &"house3", &"shop1"]
 
 
+## Buildings line the streets, set back by their own front face.
+##
+## Two earlier attempts are worth remembering. Measuring the setback to a
+## building's centre put the front of every deep shop out on the carriageway.
+## Scattering them through the blocks instead left the island looking like
+## empty fields, because on a grid this tight almost no ground is far enough
+## from a road. Rows along the frontage, with real gaps and whole blocks left
+## clear, is what gives streets that read as streets and still feel open.
 func _place_buildings(root: Node3D) -> void:
 	var holder := Node3D.new()
 	holder.name = "Buildings"
@@ -182,44 +300,74 @@ func _place_buildings(root: Node3D) -> void:
 		var length := a.distance_to(b)
 		var dir := (b - a).normalized()
 		var right := Vector2(-dir.y, dir.x)
-		var plots := int(length / PLOT_SPACING)
+		var kerb := roads.road_half_width(e.kind) + TerrainBuilder.PAVEMENT_WIDTH
+
+		# Stay off the corners: a building wedged into a junction blocks the
+		# view down both streets and gets rejected for being too near the
+		# cross road anyway.
+		var corner := kerb + CORNER_CLEARANCE
+		var usable := length - 2.0 * corner
+		if usable < PLOT_SPACING * 0.6:
+			continue
+		var plots := maxi(int(usable / PLOT_SPACING), 1)
 
 		for i in range(plots):
-			var t := (float(i) + 0.5) / float(maxi(plots, 1))
-			var centre := a.lerp(b, t)
+			var along := corner + usable * (float(i) + 0.5) / float(plots)
 			for side: float in [1.0, -1.0]:
-				var district := island.district_at(centre + right * side * SETBACK)
+				var district := island.district_at(
+						a + dir * along + right * side * SETBACK)
 				var names := _building_names(district)
 				if names.is_empty():
 					continue
-				# Leave gaps: a solid wall of houses reads as a corridor.
-				if _rng.randf() < 0.08:
+				# Gaps, and the occasional whole frontage left open as a square.
+				if _rng.randf() < GAP_CHANCE:
 					continue
 
 				var name: StringName = names[_rng.randi_range(0, names.size() - 1)]
 				var node := AssetLibrary.model(name)
-
-				# Set back by the building's own front face, not its centre.
-				# Measuring to the centre put the front of every deep shop out
-				# on the carriageway, which the player then drove into.
-				var bounds := _local_bounds(node)
-				var front := maxf(bounds.position.z + bounds.size.z, 0.0)
-				var kerb := roads.road_half_width(e.kind) + TerrainBuilder.PAVEMENT_WIDTH
-				var setback := kerb + FRONT_MARGIN + front
-				var spot := centre + right * side * setback
-
-				var footprint := maxf(bounds.size.x, bounds.size.z) * 0.5 + MIN_GAP
-				if not _fits(spot, footprint, kerb + 0.5):
-					node.queue_free()
-					continue
-
-				node.position = Vector3(spot.x, IslandLayout.GROUND_Y, spot.y)
+				var foot := _footprint(node)
+				var setback := kerb + FRONT_MARGIN + foot.y * 0.5
 				# Face the road: the model's front is +Z.
 				var facing := -right * side
+				# The claimed rectangle is the building's own footprint plus a
+				# gap, turned to match it. Half along the frontage, half in
+				# depth - not one circle around the lot, which used to swallow
+				# the whole block.
+				var half := foot * 0.5 + Vector2(MIN_GAP, BACK_GAP)
+
+				var found: Variant = _slide_to_fit(a, dir, right * side, along,
+						setback, half, facing, kerb + 0.5, corner, length - corner)
+				if found == null:
+					node.queue_free()
+					continue
+				var spot: Vector2 = found
+
+				node.position = Vector3(spot.x, IslandLayout.GROUND_Y, spot.y)
 				node.rotation.y = atan2(facing.x, facing.y)
 				_add_collision(node)
 				holder.add_child(node)
-				_claim(spot, footprint)
+				_claim_box(spot, half, facing)
+
+
+## Find room for one plot, shuffling it up and down its own street.
+##
+## A plot pinned to the middle of its edge fails wherever two streets meet:
+## the building on this frontage and the one round the corner want the same
+## ground, and on a junction-heavy grid that rejected a third of the town. A
+## few metres either way is enough to settle it, and the small irregularity
+## reads better than a row of buildings all pinned to their mid-points.
+## Returns the world position, or null when nothing along the edge fits.
+func _slide_to_fit(a: Vector2, dir: Vector2, out: Vector2, along: float,
+		setback: float, half: Vector2, facing: Vector2, road_clearance: float,
+		low: float, high: float) -> Variant:
+	for step: float in [0.0, 2.5, -2.5, 5.0, -5.0, 7.5, -7.5, 10.0, -10.0]:
+		var at := along + step
+		if at < low or at > high:
+			continue
+		var spot := a + dir * at + out * setback
+		if _fits_box(spot, half, facing, road_clearance):
+			return spot
+	return null
 
 
 func _place_street_furniture(root: Node3D) -> void:
@@ -300,9 +448,11 @@ func _place_harbour(root: Node3D) -> void:
 		return
 
 	# Containers stacked along the quay.
-	for i in range(8):
-		var spot := quay.centre + Vector2(cos(float(i) * 1.1) * 16.0, sin(float(i) * 1.1) * 13.0)
-		if not _fits(spot, 4.5, 10.0):
+	for i in range(10):
+		var ring := Vector2(cos(float(i) * 1.1), sin(float(i) * 1.1)) \
+				* Vector2(16.0, 13.0) * IslandLayout.SCALE
+		var spot := quay.centre + ring
+		if not _fits(spot, 4.0, 6.0):
 			continue
 		var node := AssetLibrary.model(&"container")
 		node.position = Vector3(spot.x, IslandLayout.GROUND_Y, spot.y)
@@ -317,8 +467,8 @@ func _place_harbour(root: Node3D) -> void:
 			stacked.rotation.y = node.rotation.y
 			holder.add_child(stacked)
 
-	var crane_spot := quay.centre + Vector2(6.0, -12.0)
-	if _fits(crane_spot, 6.0, 10.0):
+	var crane_spot := quay.centre + Vector2(6.0, -12.0) * IslandLayout.SCALE
+	if _fits(crane_spot, 6.0, 7.0):
 		var crane := AssetLibrary.model(&"crane")
 		crane.position = Vector3(crane_spot.x, IslandLayout.GROUND_Y, crane_spot.y)
 		crane.rotation.y = 2.2
@@ -345,12 +495,17 @@ func _place_beach(root: Node3D) -> void:
 	if beach == null:
 		return
 
-	for i in range(14):
+	# Offsets scale with the island: written as absolute metres they scattered
+	# the whole beach into the sea the moment the map was resized, and the
+	# district came out empty.
+	var spread := 26.0 * IslandLayout.SCALE
+	for i in range(16):
 		var spot := beach.centre + Vector2(
-			_rng.randf_range(-26.0, 26.0), _rng.randf_range(-6.0, 20.0))
-		if not island.is_walkable(spot, 2.5):
+			_rng.randf_range(-spread, spread),
+			_rng.randf_range(-spread * 0.3, spread * 0.8))
+		if not island.is_walkable(spot, 2.0):
 			continue
-		if not _fits(spot, 2.4, 8.0):
+		if not _fits(spot, 2.4, 5.0):
 			continue
 		var what := &"parasol" if _rng.randf() < 0.5 else &"deckchair"
 		var node := AssetLibrary.model(what)
@@ -360,14 +515,63 @@ func _place_beach(root: Node3D) -> void:
 		_claim(spot, 2.4)
 
 
-func _place_centre_features(root: Node3D) -> void:
+## The town square, laid out before any building so it stays open.
+##
+## It sits in the block north-east of the central crossroads and claims the
+## whole block, which is the one piece of the plan that stops the centre
+## closing in on itself. A fountain in the middle, benches looking at it,
+## planters and lamps round the edge, trees at the back.
+func _place_square(root: Node3D) -> void:
 	var holder := Node3D.new()
-	holder.name = "CentreFeatures"
+	holder.name = "TownSquare"
 	root.add_child(holder)
-	# A fountain on the plaza, set back from the crossroads at the origin.
-	var spot := Vector2(11.0, 11.0)
-	if _fits(spot, 4.0, 8.0):
-		var fountain := AssetLibrary.model(&"fountain")
-		fountain.position = Vector3(spot.x, IslandLayout.GROUND_Y, spot.y)
-		holder.add_child(fountain)
-		_claim(spot, 4.0)
+
+	var centre := SQUARE_CENTRE
+	if not island.is_walkable(centre, 8.0):
+		return
+	# Claim the block first: everything below is dressing inside it.
+	_claim(centre, SQUARE_RADIUS)
+
+	var fountain := AssetLibrary.model(&"fountain")
+	fountain.position = Vector3(centre.x, IslandLayout.GROUND_Y, centre.y)
+	_add_collision(fountain)
+	holder.add_child(fountain)
+
+	# Benches on all four sides, turned to face the water.
+	for i: int in range(4):
+		var angle := TAU * float(i) / 4.0 + PI * 0.25
+		var out := Vector2(cos(angle), sin(angle))
+		var bench := AssetLibrary.model(&"bench")
+		var at := centre + out * 5.4
+		bench.position = Vector3(at.x, IslandLayout.GROUND_Y, at.y)
+		# The bench seat faces +Z, so point it back at the fountain.
+		bench.rotation.y = atan2(-out.x, -out.y)
+		holder.add_child(bench)
+
+	# Planters and lamps alternating round the rim, and a bin by one of them.
+	for i: int in range(8):
+		var angle := TAU * float(i) / 8.0
+		var out := Vector2(cos(angle), sin(angle))
+		var at := centre + out * 8.6
+		if not island.is_walkable(at, 4.0):
+			continue
+		var what: StringName = &"planter" if i % 2 == 0 else &"lamp"
+		var node := AssetLibrary.model(what)
+		node.position = Vector3(at.x, IslandLayout.GROUND_Y, at.y)
+		node.rotation.y = angle
+		holder.add_child(node)
+
+	var bin := AssetLibrary.model(&"bin")
+	var bin_at := centre + Vector2(6.8, -6.8)
+	bin.position = Vector3(bin_at.x, IslandLayout.GROUND_Y, bin_at.y)
+	holder.add_child(bin)
+
+	# A pair of trees behind the fountain for some height on the square.
+	for offset: Vector2 in [Vector2(-7.4, 7.4), Vector2(7.4, 7.4)]:
+		var tree := AssetLibrary.model(&"tree")
+		var at := centre + offset
+		if not island.is_walkable(at, 4.0):
+			continue
+		tree.position = Vector3(at.x, IslandLayout.GROUND_Y, at.y)
+		tree.rotation.y = _rng.randf() * TAU
+		holder.add_child(tree)

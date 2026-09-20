@@ -99,7 +99,8 @@ func _build_scene() -> void:
 	# Linear tonemapping clips anything over 1.0 straight to white, so sun and
 	# ambient together have to stay under it or the whole island blows out -
 	# which is exactly what the first cartoon pass did.
-	sun.light_energy = 0.58
+	sun.light_energy = 0.70
+	sun.light_color = Color(1.0, 0.97, 0.90)
 	sun.shadow_enabled = GameSettings.shadows_enabled()
 	sun.directional_shadow_max_distance = GameSettings.draw_distance() * 0.6
 	add_child(sun)
@@ -116,10 +117,15 @@ func _build_scene() -> void:
 	sky_mat.ground_horizon_color = Palette.SKY_HORIZON
 	sky.sky_material = sky_mat
 	env.sky = sky
-	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	# Strong sky bounce keeps the shadow sides colourful instead of muddy,
-	# which is most of what makes a flat palette read as cartoon.
-	env.ambient_light_energy = 0.55
+	# A pale, near-neutral fill rather than the sky itself. Taking ambient from
+	# a deep blue sky tinted every unlit surface cyan, and with half the island
+	# in soft shade that turned lawns and pavements turquoise.
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	env.ambient_light_color = Color(0.82, 0.86, 0.94)
+	# Enough fill that shadow sides stay readable, not so much that the
+	# shading flattens out. Sun and fill together stay under 1.0, because
+	# linear tonemapping clips anything above it straight to white.
+	env.ambient_light_energy = 0.24
 	# Almost no fog: haze is what turned the first pass grey.
 	env.fog_enabled = true
 	env.fog_density = 0.0004
@@ -494,6 +500,20 @@ func nearest_active_station() -> RecyclingStation:
 			best_d = d
 			best = station
 	return best
+
+
+## Every station as a plain dictionary, for the maps to draw.
+##
+## Both the pause screen's island map and the head-up display's minimap read
+## this, so the two can never show different stations.
+func station_markers() -> Array:
+	var out: Array = []
+	for station: RecyclingStation in stations:
+		out.append({
+			"position": Vector2(station.global_position.x, station.global_position.z),
+			"active": station.active,
+		})
+	return out
 
 
 func litter_on_ground() -> int:

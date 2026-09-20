@@ -42,6 +42,8 @@ var _litter_chance: float = 0.55
 
 var _model: Node3D
 var _hips: Node3D
+## Height the hips rest at, read off the model so the walk bob is relative.
+var _hips_rest_y: float = 0.42
 var _torso: Node3D
 var _head: Node3D
 var _arm_l: Node3D
@@ -68,6 +70,8 @@ func _ready() -> void:
 	_leg_l = _model.find_child("LegLeft", true, false)
 	_leg_r = _model.find_child("LegRight", true, false)
 	_hand = _model.find_child("HandSocket", true, false)
+	if _hips != null:
+		_hips_rest_y = _hips.position.y
 
 
 func setup(p_roads: RoadGraph, p_island: IslandLayout, seed_value: int) -> void:
@@ -279,6 +283,8 @@ func _animate(delta: float) -> void:
 	if _arm_r != null and state != State.CONSUME:
 		_arm_r.rotation.x = swing * 0.8
 	if _hips != null:
-		_hips.position.y = 0.92 + absf(sin(_bob)) * 0.035 * target_swing
+		# Rest height comes from the model, so a rebuilt rig does not leave
+		# everyone hovering. The bob rides on top of it.
+		_hips.position.y = _hips_rest_y + absf(sin(_bob)) * 0.030 * target_swing
 	if _torso != null:
 		_torso.rotation.z = sin(_bob) * 0.04 * target_swing

@@ -89,11 +89,7 @@ func _process(_delta: float) -> void:
 		return
 	_map.show_player = true
 	_map.player_position = Vector2(_world.slime.global_position.x, _world.slime.global_position.z)
-	var markers: Array = []
-	for station: RecyclingStation in _world.stations:
-		markers.append({
-			"position": Vector2(station.global_position.x, station.global_position.z),
-			"active": station.active,
-		})
-	_map.station_markers = markers
+	var facing := -_world.slime.global_transform.basis.z
+	_map.player_heading = Vector2(facing.x, facing.z)
+	_map.station_markers = _world.station_markers()
 	_map.queue_redraw()
