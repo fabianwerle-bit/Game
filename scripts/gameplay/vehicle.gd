@@ -84,17 +84,7 @@ func setup(p_roads: RoadGraph, p_kind: StringName, seed_value: int, start_node: 
 
 	_model = AssetLibrary.model(kind)
 	add_child(_model)
-	for name: String in ["FrontLeft", "FrontRight"]:
-		var hub := _model.find_child(name, true, false) as Node3D
-		if hub != null:
-			_steer_hubs.append(hub)
-	for name: String in ["FrontLeft", "FrontRight", "RearLeft", "RearRight"]:
-		var hub := _model.find_child(name, true, false)
-		if hub == null:
-			continue
-		var spin := hub.find_child("Spin", true, false) as Node3D
-		if spin != null:
-			_wheels.append(spin)
+	_rig_wheels()
 	for light in _find_all(_model, "BrakeLight"):
 		var mi := light as MeshInstance3D
 		if mi != null and mi.material_override is StandardMaterial3D:
@@ -268,3 +258,33 @@ func release_claims() -> void:
 	if _claimed_junction >= 0 and roads != null:
 		roads.release_junction(_claimed_junction, id)
 		_claimed_junction = -1
+## Find the wheels, whichever naming the model uses.
+##
+## The hand-built cars hang a "Spin" node inside a named hub, so steering and
+## rolling are separate rotations. Kenney's car kit has no hubs at all: the
+## wheels are plain meshes called wheel-front-left and so on. Supporting both
+## keeps the wheels turning whether a vehicle is a real model or a stand-in.
+func _rig_wheels() -> void:
+	for side: String in ["FrontLeft", "FrontRight"]:
+		var hub := _model.find_child(side, true, false) as Node3D
+		if hub != null:
+			_steer_hubs.append(hub)
+	for side: String in ["FrontLeft", "FrontRight", "RearLeft", "RearRight"]:
+		var hub := _model.find_child(side, true, false)
+		if hub == null:
+			continue
+		var spin := hub.find_child("Spin", true, false) as Node3D
+		if spin != null:
+			_wheels.append(spin)
+	if not _wheels.is_empty():
+		return
+
+	for side: String in ["wheel-front-left", "wheel-front-right"]:
+		var wheel := _model.find_child(side, true, false) as Node3D
+		if wheel != null:
+			_steer_hubs.append(wheel)
+	for side: String in ["wheel-front-left", "wheel-front-right",
+			"wheel-back-left", "wheel-back-right"]:
+		var wheel := _model.find_child(side, true, false) as Node3D
+		if wheel != null:
+			_wheels.append(wheel)

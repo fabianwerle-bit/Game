@@ -90,23 +90,10 @@ static func _test_every_litter_kind_builds(t: TestSupport) -> void:
 	t.check(true, "every litter kind is correctly proportioned and grounded")
 
 
+## Measured the same way the city measures a prop, so a test cannot pass on a
+## size the game never sees.
 static func _bounds(node: Node) -> AABB:
-	var box := AABB()
-	var first := true
-	for child in _all_meshes(node):
-		var mi: MeshInstance3D = child
-		if mi.mesh == null:
-			continue
-		var local := mi.mesh.get_aabb()
-		local.position *= mi.scale
-		local.size *= mi.scale
-		local.position += mi.position
-		if first:
-			box = local
-			first = false
-		else:
-			box = box.merge(local)
-	return box
+	return CityBuilder._local_bounds(node)
 
 
 static func _all_meshes(node: Node) -> Array:
@@ -196,14 +183,25 @@ static func _first_albedo(node: Node) -> Color:
 static func _test_placeholder_reporting(t: TestSupport) -> void:
 	t.suite("placeholder honesty")
 	AssetLibrary.reset()
-	# With no artwork present every prop must be reported as a stand-in rather
-	# than quietly passing as finished art.
-	var node := AssetLibrary.model(&"house0")
-	node.free()
-	t.check(AssetLibrary.placeholder_report().has(&"house0"),
+
+	# A prop with no artwork must be reported as a stand-in rather than
+	# quietly passing as finished art. The bench is still hand-built.
+	var stand_in := AssetLibrary.model(&"bench")
+	stand_in.free()
+	t.check(AssetLibrary.placeholder_report().has(&"bench"),
 			"a prop without artwork is reported as a placeholder")
-	t.check(not AssetLibrary.has_real_model(&"house0"),
+	t.check(not AssetLibrary.has_real_model(&"bench"),
 			"and is not claimed to be a real model")
+
+	# And the other way round: a prop that does have artwork must not be
+	# counted among the stand-ins, or the report stops meaning anything.
+	var real := AssetLibrary.model(&"house0")
+	real.free()
+	t.check(AssetLibrary.has_real_model(&"house0"),
+			"a prop with artwork is reported as a real model")
+	t.check(not AssetLibrary.placeholder_report().has(&"house0"),
+			"and is not counted as a placeholder")
+
 	AssetLibrary.reset()
 	PropBuilder.reset_materials()
 	PropBuilder.reset_variants()

@@ -164,22 +164,41 @@ static func _add_collision(node: Node3D, layer: int = 1, shrink: float = 0.94) -
 	node.add_child(body)
 
 
+## The space a prop occupies, in its own root's coordinates.
+##
+## Every transform between the root and a mesh is accumulated, not just the
+## mesh's own. Imported models carry their metres-per-unit scale on the root
+## and hang their geometry several nodes down, and a rigged figure is a chain
+## of joints; measuring only the leaf gave a building its size in model units
+## and a person the height of their own head.
 static func _local_bounds(node: Node) -> AABB:
 	var box := AABB()
 	var first := true
-	for mesh: MeshInstance3D in _meshes(node):
+	for entry: Array in _meshes_with_transform(node, Transform3D.IDENTITY):
+		var mesh: MeshInstance3D = entry[0]
+		var at: Transform3D = entry[1]
 		if mesh.mesh == null:
 			continue
-		var local := mesh.mesh.get_aabb()
-		local.position *= mesh.scale
-		local.size *= mesh.scale
-		local.position += mesh.position
+		var local := at * mesh.mesh.get_aabb()
 		if first:
 			box = local
 			first = false
 		else:
 			box = box.merge(local)
 	return box
+
+
+## Every mesh under `node`, each with the transform that places it there.
+static func _meshes_with_transform(node: Node, at: Transform3D) -> Array:
+	var here := at
+	if node is Node3D:
+		here = at * (node as Node3D).transform
+	var out: Array = []
+	if node is MeshInstance3D:
+		out.append([node, here])
+	for child: Node in node.get_children():
+		out.append_array(_meshes_with_transform(child, here))
+	return out
 
 
 ## A building's walls on the ground, as (width, depth).
@@ -265,6 +284,13 @@ func _reserve_stations() -> void:
 ## the town centre's shops and apartment blocks - a parade of shopfronts facing
 ## open fields. It gets outskirts housing instead, with the occasional corner
 ## shop.
+## One of the palette's candy colours, softened so the kit's own shading and
+## roof still show through the wash.
+func _wall_tint() -> Color:
+	var candy := Palette.WALLS[_rng.randi_range(0, Palette.WALLS.size() - 1)]
+	return Color.WHITE.lerp(candy, 0.62)
+
+
 func _building_names(district: StringName) -> Array[StringName]:
 	match district:
 		IslandLayout.CENTRE:
@@ -324,7 +350,9 @@ func _place_buildings(root: Node3D) -> void:
 					continue
 
 				var name: StringName = names[_rng.randi_range(0, names.size() - 1)]
-				var node := AssetLibrary.model(name)
+				# Every building on a street wears a different colour, and the
+				# same plot always gets the same one for a given seed.
+				var node := AssetLibrary.model(name, _wall_tint())
 				var foot := _footprint(node)
 				var setback := kerb + FRONT_MARGIN + foot.y * 0.5
 				# Face the road: the model's front is +Z.

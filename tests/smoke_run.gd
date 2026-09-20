@@ -272,6 +272,7 @@ func _verify_round(world: World) -> void:
 	print("  distance covered:  %.1fm" % _travelled)
 	print("  on the ground:     %.0f%%" % (float(_floor_frames) / float(maxi(_moving_frames, 1)) * 100.0))
 	print("  nodes in tree:     %d" % _peak_nodes)
+	print("  real models:       %d" % AssetLibrary.real_report().size())
 	print("  placeholder props: %d" % AssetLibrary.placeholder_report().size())
 	print("  texture sets:      %d of %d present"
 			% [MaterialLibrary.SLOTS.size() - MaterialLibrary.missing_slots().size(),

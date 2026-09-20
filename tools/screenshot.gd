@@ -35,6 +35,10 @@ var _shot: int = 0
 var _taken: Array[String] = []
 var _overview_done := false
 var _view_frame: int = 0
+var _last_at: Vector3 = Vector3.ZERO
+var _stuck: int = 0
+var _veer: float = 0.0
+var _rng := RandomNumberGenerator.new()
 
 
 func _init() -> void:
@@ -73,6 +77,23 @@ func _drive(world: World) -> void:
 				have = true
 	if not have:
 		return
+
+	# Nose to a shop front and the bot will push at it until the round ends,
+	# and every shot comes out a close-up of a wall. Give up on the target
+	# and swing away when it has not made ground for a while.
+	var here := slime.global_position
+	if here.distance_to(_last_at) > 0.6:
+		_last_at = here
+		_stuck = 0
+	else:
+		_stuck += 1
+	if _stuck > 30:
+		_veer = _rng.randf_range(1.6, 2.6) * (1.0 if _rng.randf() < 0.5 else -1.0)
+		_stuck = 0
+	if absf(_veer) > 0.01:
+		var away := slime.global_position - target
+		target = slime.global_position + away.normalized().rotated(Vector3.UP, _veer) * 10.0
+		_veer = move_toward(_veer, 0.0, 0.06)
 
 	if _frames % 14 == 0:
 		_release()

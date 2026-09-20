@@ -854,8 +854,11 @@ static func _pedestrian() -> Node3D:
 	var shoe := material(&"shoe", Color(0.18, 0.16, 0.15), 0.8)
 	var eye := material(&"pedeye", Color(0.09, 0.09, 0.12), 0.3)
 
+	# Built at about two thirds life size, then scaled to it. Working in these
+	# numbers keeps the chibi proportions readable while the finished figure
+	# still stands as tall as a person beside a car or a doorway.
 	# A little variety in build so a crowd is not one silhouette repeated.
-	root.scale = Vector3.ONE * (0.92 + 0.20 * float(t % 5) / 4.0)
+	root.scale = Vector3.ONE * 1.66 * (0.95 + 0.12 * float(t % 5) / 4.0)
 
 	var hips := Node3D.new()
 	hips.name = "Hips"
