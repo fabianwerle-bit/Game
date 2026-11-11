@@ -1,0 +1,13 @@
+# DOMAIN aus .env. Solange keine Domain gesetzt ist (":80"), läuft alles per HTTP auf der IP.
+# Mit Domain (DNS A-Record -> 45.10.24.60) holt Caddy automatisch ein HTTPS-Zertifikat.
+{$DOMAIN::80} {
+	handle /health {
+		respond "ok" 200
+	}
+	# handle /api/* {
+	# 	reverse_proxy api:8080
+	# }
+	handle {
+		respond "Privatgebote API" 200
+	}
+}

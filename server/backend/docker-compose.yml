@@ -1,0 +1,45 @@
+# Privatgebote Backend-Grundlage
+# Nur Caddy ist von außen erreichbar (80/443). Die Datenbank hat KEINE veröffentlichten Ports
+# (wichtig: Docker umgeht UFW bei veröffentlichten Ports).
+services:
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks: [web]
+
+  db:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      retries: 5
+    networks: [backend]
+
+  # Hier kommt später die eigentliche API hin (z. B. Dart/Node), im Netz "web" + "backend",
+  # und im Caddyfile per reverse_proxy api:8080 eingebunden.
+
+networks:
+  web:
+  backend:
+    internal: true
+
+volumes:
+  caddy_data:
+  caddy_config:
+  db_data:
