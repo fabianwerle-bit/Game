@@ -21,22 +21,38 @@ canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block}
 #msg{position:fixed;left:50%;top:17%;transform:translateX(-50%);max-width:80vw;text-align:center;font-size:17px;line-height:1.45;text-shadow:0 2px 6px #000;opacity:0;transition:opacity .8s;pointer-events:none;font-style:italic;z-index:2}
 #hint{position:fixed;left:50%;bottom:27%;transform:translateX(-50%);font-size:13px;opacity:.85;text-shadow:0 1px 4px #000;pointer-events:none}
 #cross{position:fixed;left:50%;top:50%;width:4px;height:4px;margin:-2px;border-radius:50%;background:rgba(255,255,255,.55);pointer-events:none;display:none}
-.btn{position:fixed;min-width:66px;height:66px;padding:0 10px;border-radius:33px;border:1.5px solid rgba(255,255,255,.35);background:rgba(20,22,24,.38);color:#eee;font-size:12px;font-weight:600;display:none;align-items:center;justify-content:center;text-align:center}
-.btn.on{background:rgba(230,225,205,.35)}
-#bAct{right:max(22px,env(safe-area-inset-right));bottom:96px;min-width:88px;height:88px;border-radius:44px;font-size:13px}
-#bFire{right:calc(max(22px,env(safe-area-inset-right)) + 104px);bottom:96px;min-width:76px;height:76px;border-radius:38px;border-color:rgba(255,120,100,.6)}
-#bBack{right:calc(max(22px,env(safe-area-inset-right)) + 82px);bottom:150px;font-size:11px}
-#bGas{right:max(22px,env(safe-area-inset-right));bottom:84px;height:96px;min-width:80px;border-radius:14px}
-#bBrk{right:calc(max(22px,env(safe-area-inset-right)) + 94px);bottom:84px;height:74px;min-width:74px;border-radius:14px}
-body.drive #bAct{bottom:196px;min-width:70px;height:70px;border-radius:35px;font-size:11px}
-body.drive #bBack{bottom:196px}
-#inv{position:fixed;left:50%;bottom:max(8px,env(safe-area-inset-bottom));transform:translateX(-50%);display:none;gap:6px;padding:5px;background:rgba(10,12,13,.5);border:1px solid rgba(255,255,255,.14);border-radius:10px;z-index:2}
-.slot{position:relative;width:52px;height:52px;border-radius:7px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;font-size:25px}
-.slot.on{border-color:#e8dfb8;background:rgba(232,223,184,.22)}
-.slot b{position:absolute;right:3px;bottom:1px;font-size:11px;font-weight:700;text-shadow:0 1px 2px #000}
-.slot small{position:absolute;left:0;right:0;top:-15px;font-size:9px;text-align:center;opacity:.7;letter-spacing:.03em}
-#stick{position:fixed;width:120px;height:120px;margin:-60px;border-radius:50%;border:1.5px solid rgba(255,255,255,.25);background:rgba(20,22,24,.2);display:none;pointer-events:none}
-#stick i{position:absolute;left:50%;top:50%;width:50px;height:50px;margin:-25px;border-radius:50%;background:rgba(255,255,255,.3)}
+.btn{position:fixed;min-width:66px;height:66px;padding:0 10px;border-radius:50%;color:#efe9d6;font-size:10.5px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;line-height:1.25;display:none;align-items:center;justify-content:center;text-align:center;
+ background:radial-gradient(circle at 50% 32%,rgba(88,92,90,.5),rgba(14,16,17,.72) 72%);border:1px solid rgba(232,223,184,.42);
+ box-shadow:0 0 0 4px rgba(10,12,13,.32),0 6px 18px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.2),inset 0 -8px 14px rgba(0,0,0,.35);
+ -webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px);text-shadow:0 1px 2px #000;transition:transform .08s,background .12s,border-color .12s}
+.btn:active,.btn.on{transform:scale(.93);border-color:#e8dfb8;background:radial-gradient(circle at 50% 40%,rgba(232,223,184,.42),rgba(40,40,36,.75) 75%)}
+#bAct{right:max(22px,env(safe-area-inset-right));bottom:96px;min-width:92px;height:92px;font-size:11.5px;border-color:rgba(232,223,184,.7)}
+#bAct::before{content:"";position:absolute;inset:6px;border-radius:50%;border:1px solid rgba(232,223,184,.22);pointer-events:none}
+#bFire{right:calc(max(22px,env(safe-area-inset-right)) + 110px);bottom:100px;min-width:78px;height:78px;color:#ffd9cf;border-color:rgba(214,84,62,.75);
+ background:radial-gradient(circle at 50% 32%,rgba(150,52,40,.55),rgba(30,10,8,.78) 72%);padding-top:38px;font-size:9px}
+#bFire::before{content:"";position:absolute;left:50%;top:15px;width:24px;height:24px;margin-left:-12px;border-radius:50%;border:1.5px solid #ffd9cf;
+ background:linear-gradient(#ffd9cf,#ffd9cf) center/1.5px 100% no-repeat,linear-gradient(#ffd9cf,#ffd9cf) center/100% 1.5px no-repeat;opacity:.9}
+#bFire:active{background:radial-gradient(circle at 50% 40%,rgba(230,90,60,.7),rgba(60,14,10,.8) 75%)}
+#bBack{right:calc(max(22px,env(safe-area-inset-right)) + 86px);bottom:150px;font-size:9px;min-width:62px;height:62px}
+#bGas,#bBrk{border-radius:16px 16px 12px 12px;overflow:hidden;align-items:flex-end;padding-bottom:10px;
+ background:linear-gradient(rgba(70,74,72,.55),rgba(14,16,17,.8));box-shadow:0 0 0 4px rgba(10,12,13,.32),0 6px 18px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.2)}
+#bGas::before,#bBrk::before{content:"";position:absolute;left:9px;right:9px;top:9px;bottom:30px;border-radius:8px;
+ background:repeating-linear-gradient(0deg,rgba(232,223,184,.32) 0 2px,transparent 2px 9px);pointer-events:none}
+#bGas{right:max(22px,env(safe-area-inset-right));bottom:84px;height:112px;min-width:78px;border-color:rgba(232,223,184,.6)}
+#bBrk{right:calc(max(22px,env(safe-area-inset-right)) + 96px);bottom:84px;height:84px;min-width:84px;font-size:9px}
+#bBrk::before{background:repeating-linear-gradient(90deg,rgba(232,223,184,.3) 0 2px,transparent 2px 9px)}
+#bGas:active,#bGas.on,#bBrk:active,#bBrk.on{transform:translateY(4px) scale(.97);background:linear-gradient(rgba(232,223,184,.4),rgba(40,40,36,.8))}
+body.drive #bAct{bottom:214px;min-width:84px;width:84px;height:84px;font-size:8.5px;letter-spacing:.08em;padding:0 4px}
+body.drive #bBack{bottom:222px;right:calc(max(22px,env(safe-area-inset-right)) + 102px);min-width:68px;height:68px}
+#inv{position:fixed;left:50%;bottom:max(8px,env(safe-area-inset-bottom));transform:translateX(-50%);display:none;gap:7px;padding:16px 8px 7px;z-index:2;border-radius:14px;
+ background:linear-gradient(rgba(34,37,38,.62),rgba(8,10,11,.74));border:1px solid rgba(232,223,184,.2);box-shadow:0 8px 24px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.1);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.slot{position:relative;width:50px;height:50px;border-radius:10px;background:radial-gradient(circle at 50% 35%,rgba(255,255,255,.1),rgba(0,0,0,.3));border:1px solid rgba(255,255,255,.13);display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:inset 0 -6px 10px rgba(0,0,0,.3);transition:transform .08s}
+.slot:active{transform:scale(.92)}
+.slot.on{border-color:#e8dfb8;background:radial-gradient(circle at 50% 35%,rgba(232,223,184,.38),rgba(60,56,40,.4));box-shadow:0 0 12px rgba(232,223,184,.3),inset 0 -6px 10px rgba(0,0,0,.25)}
+.slot b{position:absolute;right:-4px;bottom:-4px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:#e8dfb8;color:#15161a;font-size:10.5px;font-weight:800;line-height:17px;text-align:center;box-shadow:0 1px 3px #000}
+.slot small{position:absolute;left:-6px;right:-6px;top:-13px;font-size:8px;text-align:center;opacity:.6;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap}
+#stick{position:fixed;width:124px;height:124px;margin:-62px;border-radius:50%;border:1px solid rgba(232,223,184,.3);background:radial-gradient(circle,rgba(10,12,13,.1) 40%,rgba(10,12,13,.45));box-shadow:inset 0 0 18px rgba(0,0,0,.4);display:none;pointer-events:none}
+#stick i{position:absolute;left:50%;top:50%;width:52px;height:52px;margin:-26px;border-radius:50%;background:radial-gradient(circle at 50% 32%,rgba(232,223,184,.75),rgba(120,114,92,.55));border:1px solid rgba(232,223,184,.6);box-shadow:0 4px 10px rgba(0,0,0,.5)}
 .ov{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:6;background:rgba(0,0,0,.72);padding:18px}
 #paper{background:#d9d2bd;color:#1c1a22;max-width:440px;width:86vw;max-height:84vh;overflow:auto;padding:24px 26px 18px;transform:rotate(-1.2deg);box-shadow:0 10px 40px #000;font-family:"Segoe Script","Bradley Hand","Comic Sans MS",cursive;font-size:18px;line-height:1.55;white-space:pre-line;touch-action:pan-y}
 #paper h3{margin:0 0 10px;font:600 11px system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;opacity:.55}
@@ -49,7 +65,9 @@ body.drive #bBack{bottom:196px}
 #dead,#end{flex-direction:column;background:#000;text-align:center}
 #dead h1{font-weight:300;letter-spacing:.3em;color:#a33;font-size:clamp(20px,5vw,40px)}
 #end p{font-size:clamp(16px,3.2vw,24px);line-height:1.6;white-space:pre-line;font-style:italic;max-width:680px;transition:opacity 1.2s;min-height:5em}
-button.b{margin:8px;padding:13px 34px;font-size:15px;letter-spacing:.15em;background:none;color:#e8e6df;border:1px solid rgba(255,255,255,.4);border-radius:3px}
+button.b{margin:8px;padding:14px 38px;font-size:13px;font-weight:600;letter-spacing:.28em;color:#efe9d6;border:1px solid rgba(232,223,184,.5);border-radius:28px;background:linear-gradient(rgba(70,74,72,.35),rgba(14,16,17,.6));box-shadow:0 6px 20px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.15);transition:transform .08s,background .12s}
+button.b:active{transform:scale(.96);background:linear-gradient(rgba(232,223,184,.35),rgba(40,40,36,.7))}
+#bStart{border-color:#e8dfb8;color:#fff}
 #menu{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(rgba(6,8,10,.7),rgba(0,0,0,.9));z-index:7;text-align:center;padding:20px}
 #menu h1{font-weight:300;letter-spacing:.35em;font-size:clamp(26px,6vw,52px);margin:0 0 6px}
 #menu p{opacity:.6;max-width:520px;font-size:13px;line-height:1.5;margin:6px 0}
@@ -69,8 +87,8 @@ button.b{margin:8px;padding:13px 34px;font-size:15px;letter-spacing:.15em;backgr
 <div id="cross"></div><div id="msg"></div><div id="hint"></div>
 <div id="stick"><i></i></div>
 <div id="inv"></div>
-<div class="btn" id="bAct"></div><div class="btn" id="bFire">Feuer</div><div class="btn" id="bBack">Nach hinten</div>
-<div class="btn" id="bGas">GAS</div><div class="btn" id="bBrk">Bremse<br>Rück</div>
+<div class="btn" id="bAct"></div><div class="btn" id="bFire">Feuer</div><div class="btn" id="bBack">Nach<br>hinten</div>
+<div class="btn" id="bGas">GAS</div><div class="btn" id="bBrk">Bremse</div>
 <div class="ov" id="note"><div id="paper"></div></div>
 <div class="ov" id="journal"><div id="jr"></div></div>
 <div class="ov" id="dead"><h1>ER HAT DICH GEFUNDEN</h1><button class="b" id="bRetry">NOCHMAL</button></div>
