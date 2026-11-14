@@ -17,7 +17,12 @@ TEXTURES = {  # name: maps
 MODELS = ['russian_food_cans_01', 'long_life_food', 'metal_jerrycan_green', 'Barrel_01', 'old_tyre',
           'rock_07', 'rock_09', 'stone_fire_pit', 'street_lamp_02', 'food_apple_01', 'covered_car',
           'metal_trash_can', 'propane_tank', 'steel_frame_shelves_01', 'plastic_crate_03',
-          'cardboard_box_01', 'lifebuoy', 'vintage_oil_lamp', 'utility_box_01', 'tree_stump_01']
+          'cardboard_box_01', 'lifebuoy', 'vintage_oil_lamp', 'utility_box_01', 'tree_stump_01',
+          'service_pistol', 'ammo_box', 'vintage_day_bed', 'GothicBed_01', 'Sofa_01', 'WoodenTable_01', 'painted_wooden_chair_01',
+          'painted_wooden_cabinet', 'wooden_bookshelf_worn', 'electric_stove', 'vintage_radio_transceiver',
+          'hanging_picture_frame_01', 'ornate_mirror_01', 'ocean_buoy', 'wooden_crate_01', 'old_military_crate',
+          'painted_wooden_bench', 'ArmChair_01', 'barrel_stove', 'wooden_axe', 'throw_pillows_01', 'vintage_electric_kettle',
+          'wheelchair_01', 'street_lamp_01', 'wooden_picnic_table', 'dining_table']
 HDRIS = {'kloofendal_overcast_puresky': '2k'}
 EXTRA = {  # Rinde für die Bäume
     'trees/bark_diff.jpg': 'https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/fir_tree_01/fir_tree_01_bark_diff_1k.jpg',
@@ -49,3 +54,14 @@ for name, res in HDRIS.items():
     jobs.append((f'sky/{name}.hdr', f['hdri'][res]['hdr']['url']))
 jobs += list(EXTRA.items())
 with cf.ThreadPoolExecutor(8) as ex: list(ex.map(lambda j: save(*j), jobs))
+# Modell-Texturen auf 512px verkleinern (hält die APK klein; Requisiten sind klein im Bild)
+try:
+    from PIL import Image
+    import glob
+    for f in glob.glob(os.path.join(ROOT, 'models', '*', 'textures', '*')):
+        im = Image.open(f)
+        if max(im.size) > 512:
+            im = im.resize((512, 512), Image.LANCZOS)
+            im.save(f, quality=82) if f.lower().endswith('.jpg') else im.save(f, optimize=True)
+except ImportError:
+    print('PIL fehlt – Texturen bleiben in 1k')

@@ -61,10 +61,27 @@ export function createBus(scene, world, assets) {
   sw.add(new THREE.Mesh(new THREE.TorusGeometry(0.19, 0.017, 8, 24), black)); box(0.36, 0.035, 0.02, black, 0, 0, 0, sw); box(0.035, 0.19, 0.02, black, 0, -0.095, 0, sw);
   const col = box(0.05, 0.05, 0.4, black, 0.42, 1.1, 1.0); col.rotation.x = -0.55;
   for (const x of [0.42, -0.42]) { box(0.5, 0.14, 0.5, fabric, x, 0.86, 0.4); const b = box(0.48, 0.66, 0.12, fabric, x, 1.24, 0.13); b.rotation.x = -0.12; box(0.24, 0.2, 0.1, fabric, x, 1.66, 0.08); }
-  box(1.25, 0.34, 1.75, wood, -0.2, 0.67, -1.35); box(1.22, 0.14, 1.72, new THREE.MeshStandardMaterial({ color: 0x6b2f26, roughness: 1 }), -0.2, 0.9, -1.35); // Bett
-  box(0.42, 0.26, 0.3, new THREE.MeshStandardMaterial({ color: 0xbdb6a6, roughness: 1 }), -0.5, 1.02, -2.02);
-  box(0.36, 0.75, 1.1, wood, 0.63, 0.87, -1.0);                             // Küchenzeile
-  box(0.3, 0.05, 0.3, chrome, 0.63, 1.27, -0.75);
+  const M = assets.M, put = (name, x, y, z, ry = 0, s = 1) => { const o = M[name].clone(); o.position.set(x, y, z); o.rotation.y = ry; o.scale.setScalar(s); g.add(o); return o; };
+  box(1.18, 0.34, 1.6, wood, -0.22, 0.67, -1.42); box(1.15, 0.13, 1.57, new THREE.MeshStandardMaterial({ color: 0x5d2a23, roughness: 1 }), -0.22, 0.9, -1.42); // Bett
+  put('throw_pillows_01', -0.25, 1.1, -2.0, 0.2, 0.55);
+  box(0.36, 0.78, 1.15, wood, 0.63, 0.89, -1.0); box(0.38, 0.03, 1.17, chrome, 0.63, 1.29, -1.0);   // Küchenzeile
+  put('vintage_electric_kettle', 0.63, 1.35, -1.3, 0.6, 0.5); put('russian_food_cans_01', 0.6, 1.305, -0.95, 0.4, 1.6);
+  box(0.24, 0.02, 0.24, black, 0.63, 1.31, -1.3); box(0.2, 0.04, 0.2, new THREE.MeshStandardMaterial({ color: 0x2a2a2c, roughness: 0.4, metalness: 0.8 }), 0.63, 1.33, -1.3); // Kocher
+  box(0.34, 0.3, 1.5, wood, 0.66, 1.68, -1.1); box(1.5, 0.26, 0.3, wood, -0.05, 1.7, -2.08);          // Hängeschränke
+  for (const z of [-1.55, -0.65]) box(0.012, 0.22, 0.4, chrome, 0.487, 1.68, z);
+  const todo = new THREE.Mesh(new THREE.PlaneGeometry(0.17, 0.24), new THREE.MeshStandardMaterial({ color: 0xd9d2bd, roughness: 0.9 })); todo.position.set(0.484, 1.62, -1.1); todo.rotation.y = -Math.PI / 2; todo.rotation.z = 0.06; g.add(todo);
+  put('vintage_oil_lamp', 0.62, 1.305, -0.6, 0, 0.5);
+  for (const [x, z, w] of [[-0.845, -0.45, 1.1], [0.845, -1.6, 0.8]]) { const c = box(0.01, 0.62, w * 0.35, new THREE.MeshStandardMaterial({ color: 0x6d5f3a, roughness: 1, side: THREE.DoubleSide }), x * 0.975, 1.46, z + w * 0.4); c.userData.curtain = 1; }
+  // Zettel außen an der Windschutzscheibe
+  const wsNote = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 0.28), new THREE.MeshStandardMaterial({ color: 0xe0d9c4, roughness: 0.9, side: THREE.DoubleSide })); wsNote.position.set(0.3, 1.5, 1.375); wsNote.rotation.x = -Math.atan2(0.78, 0.81); wsNote.rotation.z = 0.12; wsNote.visible = false; g.add(wsNote);
+  // weicher Bodenschatten
+  { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'), gr = x.createRadialGradient(32, 32, 6, 32, 32, 32); gr.addColorStop(0, 'rgba(0,0,0,.6)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = gr; x.fillRect(0, 0, 64, 64);
+    const sm = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 6.4), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 })); sm.rotation.x = -Math.PI / 2; sm.position.y = 0.06; g.add(sm); }
+  // Details außen
+  box(0.5, 0.11, 0.02, new THREE.MeshStandardMaterial({ color: 0xd8d8cc, roughness: 0.6 }), 0, 0.62, 2.445); box(0.5, 0.11, 0.02, new THREE.MeshStandardMaterial({ color: 0xd8d8cc, roughness: 0.6 }), 0, 0.72, -2.385);
+  const amber = new THREE.MeshStandardMaterial({ color: 0xc86a10, roughness: 0.3 }); for (const s of [-1, 1]) { box(0.12, 0.1, 0.05, amber, s * 0.86, 0.84, 2.34); box(1.84, 0.16, 0.02, black, 0, 0.5, 0).rotation.y = Math.PI / 2; }
+  for (const s of [-1, 1]) { box(0.03, 0.03, 2.9, chrome, s * 0.62, 2.0, -0.5); } for (const z of [0.7, -0.5, -1.7]) box(1.3, 0.025, 0.03, chrome, 0, 2.0, z);
+  box(1.1, 0.22, 1.5, new THREE.MeshStandardMaterial({ color: 0x33383a, roughness: 0.9 }), 0, 2.12, -1.0);
   // --- Scheibenwischer ---
   const wip = [];
   for (const x of [0.38, -0.34]) { const p = new THREE.Group(); p.position.set(x, 1.145, 1.725); p.rotation.x = -Math.atan2(0.78, 0.81); g.add(p); const a = new THREE.Group(); p.add(a); box(0.02, 0.56, 0.02, black, 0, 0.28, 0.015, a); a.rotation.z = 1.35; wip.push(a); }
@@ -84,7 +101,9 @@ export function createBus(scene, world, assets) {
     obox.x = st.x; obox.z = st.z; obox.c = Math.cos(st.heading); obox.s = Math.sin(st.heading);
   };
   st.place = (x, z, heading) => { st.x = x; st.z = z; st.heading = heading; st.v = 0; settle(1); };
-  st.group = g; st.box = obox;
+  st.group = g; st.box = obox; st.wsNote = wsNote;
+  // Blickziele im Wohnbereich (lokale Koordinaten)
+  st.spots = [{ id: 'bed', p: new THREE.Vector3(-0.22, 0.95, -1.5), label: 'Schlafen' }, { id: 'cook', p: new THREE.Vector3(0.63, 1.3, -1.25), label: 'Kochen' }, { id: 'todo', p: new THREE.Vector3(0.49, 1.62, -1.1), label: 'Zettel lesen' }, { id: 'seat', p: new THREE.Vector3(0.42, 1.25, 0.6), label: 'Ans Steuer' }, { id: 'exit', p: new THREE.Vector3(-0.85, 1.2, -0.3), label: 'Aussteigen' }];
   // gas: 0..1, brake: 0..1, steerIn: -1..1 (links +)
   st.update = (dt, gas, brake, steerIn, driving, rain) => {
     if (driving) {

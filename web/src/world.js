@@ -70,30 +70,41 @@ export function createWorld(assets, scene) {
   };
   const roads = [mkRoad(loop, 420, 6.4, true, false)];
   const nearestOnLoop = (x, z) => { let b = 0, bd = 1e9; roads[0].pts.forEach((p, i) => { const d = (p.x - x) ** 2 + (p.z - z) ** 2; if (d < bd) { bd = d; b = i; } }); return roads[0].pts[b]; };
-  const spur = (from, mid, to, width, dirt) => {
-    const a = nearestOnLoop(from.x, from.y);
-    const c = new THREE.CatmullRomCurve3([new THREE.Vector3(a.x, 0, a.z), new THREE.Vector3(mid.x, 0, mid.y), new THREE.Vector3(to.x, 0, to.y)]);
+  const onLoop = deg => { const p0 = polar(deg, 0.58), a = nearestOnLoop(p0.x, p0.y); return new THREE.Vector2(a.x, a.z); };
+  // offene Straße durch Punkte; Enden werden in der Höhe an vorhandene Straßen angeglichen
+  const road = (pts2, width, dirt) => {
+    const c = new THREE.CatmullRomCurve3(pts2.map(p => new THREE.Vector3(p.x, 0, p.y)), false, 'catmullrom', 0.5);
     const r = mkRoad(c, Math.round(c.getLength() / 2), width, false, dirt);
-    r.pts[0].y = a.y; r.pts[1].y = (a.y * 2 + r.pts[2].y) / 3;
+    for (const end of [0, r.pts.length - 1]) {
+      const e = r.pts[end]; let best = null, bd = 144;
+      for (const o of roads) for (const q of o.pts) { const d = (q.x - e.x) ** 2 + (q.z - e.z) ** 2; if (d < bd) { bd = d; best = q; } }
+      if (best) { const dir = end === 0 ? 1 : -1; for (let i = 0; i < 8; i++) { const p = r.pts[end + dir * i]; if (p) p.y = best.y + (p.y - best.y) * (i / 8); } }
+    }
     roads.push(r); return r;
   };
+  const endInfo = r => { const e = r.pts[r.pts.length - 1], q = r.pts[r.pts.length - 5]; return { x: e.x, z: e.z, y: e.y, face: Math.atan2(q.x - e.x, q.z - e.z) }; };
 
   // ---------- Orte ----------
   const out = (deg, off) => { // Punkt neben der Ringstraße, off>0 = nach außen
     const p0 = polar(deg, 0.58), a = nearestOnLoop(p0.x, p0.y), l = Math.hypot(a.x, a.z);
     return { x: a.x + a.x / l * off, z: a.z + a.z / l * off, y: a.y, face: Math.atan2(-a.x * Math.sign(off), -a.z * Math.sign(off)) };
   };
+  const V2 = (p) => new THREE.Vector2(p.x, p.y);
+  const vil = polar(238, 0.31), cab = polar(62, 0.27), harb = polar(252, 0.9);
+  const rHarbor = road([onLoop(252), polar(252, 0.76), harb], 5.6, false);
+  const rVillage = road([onLoop(252), polar(246, 0.45), vil], 5.6, false);
+  road([vil, polar(215, 0.13), polar(40, 0.1), polar(55, 0.36), onLoop(55)], 4.6, false);     // quer über die Insel
+  const rCabin = road([polar(55, 0.36), cab], 3.4, true);
+  const rLight = road([onLoop(118), polar(119, 0.72), new THREE.Vector2(LH.x, LH.y)], 3.8, true);
+  road([vil, polar(196, 0.4), onLoop(168)], 3.8, true);                                         // Westweg
   const pois = {
     station: { ...out(300, 21), r: 20 },
     camp: { ...out(205, -17), r: 12 },
-    cabin: { x: polar(55, 0.30).x, z: polar(55, 0.30).y, r: 9 },
-    light: { x: LH.x, z: LH.y, r: 9 },
-    pier: { x: polar(252, 0.985).x, z: polar(252, 0.985).y, r: 6 },
+    cabin: { ...endInfo(rCabin), r: 9 },
+    light: { ...endInfo(rLight), r: 10 },
+    harbor: { ...endInfo(rHarbor), r: 25 },
+    village: { ...endInfo(rVillage), r: 37 },
   };
-  spur(polar(55, 0.56), polar(57, 0.42), new THREE.Vector2(pois.cabin.x, pois.cabin.z), 3.4, true);
-  spur(polar(118, 0.6), polar(119, 0.72), new THREE.Vector2(pois.light.x, pois.light.z), 3.8, true);
-  spur(polar(252, 0.6), polar(251, 0.8), new THREE.Vector2(pois.pier.x, pois.pier.z), 3.8, true);
-  for (const k of ['cabin', 'light', 'pier']) { const r = roads[{ cabin: 1, light: 2, pier: 3 }[k]], e = r.pts[r.pts.length - 1]; pois[k].y = e.y; const q = r.pts[r.pts.length - 4]; pois[k].face = Math.atan2(q.x - e.x, q.z - e.z); }
 
   // ---------- Einebnen ----------
   const B = 24, bk = new Map(), samples = [];
@@ -112,7 +123,7 @@ export function createWorld(assets, scene) {
     const x = gx(i), z = gx(j), k = j * N + i;
     for (const key in pois) {
       const p = pois[key], d = Math.hypot(x - p.x, z - p.z);
-      if (d < p.r + 9) { const t = 1 - sstep(p.r, p.r + 9, d); H[k] += (p.y - H[k]) * t; roadMask[k] = Math.max(roadMask[k], t * (key === 'station' ? 1 : 0.7)); }
+      if (d < p.r + 9) { const t = 1 - sstep(p.r, p.r + 9, d); H[k] += (p.y - H[k]) * t; roadMask[k] = Math.max(roadMask[k], t * (key === 'station' || key === 'harbor' ? 1 : 0.7)); }
     }
     const rn = roadNear(x, z);
     if (rn && rn.d < rn.s.w + 9) {
@@ -165,7 +176,7 @@ export function createWorld(assets, scene) {
   // ---------- Straßenbänder ----------
   const roadMat = (t, tile) => { const m = new THREE.MeshStandardMaterial({ map: t.d, normalMap: t.n, roughness: 0.85, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }); m.userData.tile = tile; return m; };
   const asphalt = roadMat(T.asphalt_02, 4), dirt = roadMat(T.brown_mud_leaves_01, 3);
-  dirt.color.set(0x8a7f70);
+  dirt.color.set(0x5d5a56);
   const wetMats = [asphalt, dirt];
   for (const r of roads) {
     const n = r.pts.length, cnt = r.closed ? n + 1 : n, P = [], U = [], I = [];
@@ -220,7 +231,33 @@ export function createWorld(assets, scene) {
     for (const o of platforms) { const dx = x - o.x, dz = z - o.z, lx = dx * o.c - dz * o.s, lz = dx * o.s + dz * o.c; if (Math.abs(lx) < o.hw && Math.abs(lz) < o.hd) h = Math.max(h, o.y); }
     return h;
   };
-  const world = { H, getHeight: sampleH, ground, platforms, boxes, roads, pois, roadNear, forestMask, wet, wetMats, collide, addCircle, addBox, terrain, LH };
+  // ---------- Wegenetz (für den Verfolger) ----------
+  const nodes = [];
+  for (const r of roads) {
+    const base = nodes.length;
+    r.pts.forEach((p, i) => { nodes.push({ x: p.x, z: p.z, y: p.y, dirt: r.dirt, nb: [] }); if (i > 0) { nodes[base + i].nb.push(base + i - 1); nodes[base + i - 1].nb.push(base + i); } });
+    if (r.closed) { nodes[base].nb.push(nodes.length - 1); nodes[nodes.length - 1].nb.push(base); }
+    r.base = base;
+  }
+  for (const r of roads) if (!r.closed) for (const e of [r.base, r.base + r.pts.length - 1]) {
+    let best = -1, bd = 196; const n = nodes[e];
+    nodes.forEach((m, i) => { if (i >= r.base && i < r.base + r.pts.length) return; const d = (m.x - n.x) ** 2 + (m.z - n.z) ** 2; if (d < bd) { bd = d; best = i; } });
+    if (best >= 0) { n.nb.push(best); nodes[best].nb.push(e); }
+  }
+  const nearestNode = (x, z) => { let b = 0, bd = 1e9; for (let i = 0; i < nodes.length; i++) { const d = (nodes[i].x - x) ** 2 + (nodes[i].z - z) ** 2; if (d < bd) { bd = d; b = i; } } return b; };
+  const pathTo = (from, to) => { // Breitensuche
+    const prev = new Int32Array(nodes.length).fill(-1), q = [to]; prev[to] = to;
+    for (let h = 0; h < q.length; h++) { const c = q[h]; if (c === from) break; for (const n of nodes[c].nb) if (prev[n] < 0) { prev[n] = c; q.push(n); } }
+    const path = []; if (prev[from] < 0) return path; let c = from; while (c !== to) { c = prev[c]; path.push(c); if (path.length > 2000) break; } return path;
+  };
+  // ---------- Innenräume ----------
+  const zones = [];
+  const indoor = (x, z) => { for (const o of zones) { const dx = x - o.x, dz = z - o.z, lx = dx * o.c - dz * o.s, lz = dx * o.s + dz * o.c; if (Math.abs(lx) < o.hw && Math.abs(lz) < o.hd) return o; } return null; };
+  // ---------- Höhen-/Grasdichte-Textur (für Gras im Vertex-Shader) ----------
+  const hd = new Uint16Array(N * N * 4), toHalf = THREE.DataUtils.toHalfFloat;
+  for (let k = 0; k < N * N; k++) { const land = 1 - Math.max(splat[k * 4 + 2], Math.min(1, splat[k * 4 + 3])); hd[k * 4] = toHalf(H[k]); hd[k * 4 + 1] = toHalf(Math.max(0, (splat[k * 4] * 0.95 + splat[k * 4 + 1] * 0.22) * land * (1 - Math.min(1, roadMask[k] * 1.6)) * (H[k] > 2.4 ? 1 : 0))); hd[k * 4 + 3] = toHalf(1); }
+  const heightTex = new THREE.DataTexture(hd, N, N, THREE.RGBAFormat, THREE.HalfFloatType); heightTex.magFilter = heightTex.minFilter = THREE.LinearFilter; heightTex.needsUpdate = true;
+  const world = { nodes, nearestNode, pathTo, zones, indoor, heightTex, H, getHeight: sampleH, ground, platforms, boxes, roads, pois, roadNear, forestMask, wet, wetMats, collide, addCircle, addBox, terrain, LH };
   world.onRoad = (x, z) => { const r = roadNear(x, z); return r && r.d < r.s.w + 0.5 ? (r.s.dirt ? 0.75 : 1) : 0; };
   world.clearOfPois = (x, z, extra = 0) => { for (const k in pois) if (Math.hypot(x - pois[k].x, z - pois[k].z) < pois[k].r + extra) return false; return true; };
   return world;

@@ -8,62 +8,82 @@
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;touch-action:none}
 html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#e8e6df}
 canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block}
-#vig{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,rgba(0,0,0,0) 45%,rgba(0,0,0,.55) 100%)}
-#fade{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity 1.6s}
-#hud{position:fixed;left:max(14px,env(safe-area-inset-left));top:max(10px,env(safe-area-inset-top));font-size:13px;letter-spacing:.04em;text-shadow:0 1px 3px #000;pointer-events:none;display:none}
+#fade{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity 1.6s;z-index:3}
+#flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:3}
+#face{position:fixed;inset:0;width:100%;height:100%;display:none;pointer-events:none;z-index:4}
+#hud{position:fixed;left:max(14px,env(safe-area-inset-left));top:max(10px,env(safe-area-inset-top));font-size:13px;letter-spacing:.04em;text-shadow:0 1px 3px #000;pointer-events:none;display:none;max-width:46vw}
 #hud .row{display:flex;align-items:center;gap:8px;margin-bottom:5px}
 #hud .lbl{width:58px;opacity:.75;text-transform:uppercase;font-size:10px}
 .bar{width:110px;height:5px;background:rgba(255,255,255,.16);border-radius:3px;overflow:hidden}
 .bar i{display:block;height:100%;width:50%;background:#d8d2c0;border-radius:3px}
 #day{font-size:15px;font-weight:600;margin-bottom:8px}
-#inv{opacity:.85;font-size:12px}
-#msg{position:fixed;left:50%;top:18%;transform:translateX(-50%);max-width:80vw;text-align:center;font-size:17px;line-height:1.45;text-shadow:0 2px 6px #000;opacity:0;transition:opacity .8s;pointer-events:none;font-style:italic}
-#hint{position:fixed;left:50%;bottom:24%;transform:translateX(-50%);font-size:13px;opacity:.8;text-shadow:0 1px 4px #000;pointer-events:none}
+#obj{opacity:.8;font-size:12px;line-height:1.35;margin-top:4px;font-style:italic}
+#msg{position:fixed;left:50%;top:17%;transform:translateX(-50%);max-width:80vw;text-align:center;font-size:17px;line-height:1.45;text-shadow:0 2px 6px #000;opacity:0;transition:opacity .8s;pointer-events:none;font-style:italic;z-index:2}
+#hint{position:fixed;left:50%;bottom:27%;transform:translateX(-50%);font-size:13px;opacity:.85;text-shadow:0 1px 4px #000;pointer-events:none}
 #cross{position:fixed;left:50%;top:50%;width:4px;height:4px;margin:-2px;border-radius:50%;background:rgba(255,255,255,.55);pointer-events:none;display:none}
-.btn{position:fixed;min-width:66px;height:66px;padding:0 10px;border-radius:33px;border:1.5px solid rgba(255,255,255,.35);background:rgba(20,22,24,.38);color:#eee;font-size:12px;font-weight:600;display:none;align-items:center;justify-content:center;text-align:center;backdrop-filter:blur(3px)}
+.btn{position:fixed;min-width:66px;height:66px;padding:0 10px;border-radius:33px;border:1.5px solid rgba(255,255,255,.35);background:rgba(20,22,24,.38);color:#eee;font-size:12px;font-weight:600;display:none;align-items:center;justify-content:center;text-align:center}
 .btn.on{background:rgba(230,225,205,.35)}
-#bAct{right:max(22px,env(safe-area-inset-right));bottom:118px;min-width:84px;height:84px;border-radius:42px;font-size:13px}
-#bLamp{right:calc(max(22px,env(safe-area-inset-right)) + 100px);bottom:34px}
-#bEat{right:max(22px,env(safe-area-inset-right));bottom:34px}
-#bSleep{right:calc(max(22px,env(safe-area-inset-right)) + 100px);bottom:118px}
-#bGas{right:max(22px,env(safe-area-inset-right));bottom:30px;height:96px;min-width:80px;border-radius:14px}
-#bBrk{right:calc(max(22px,env(safe-area-inset-right)) + 94px);bottom:30px;height:74px;min-width:74px;border-radius:14px}
-body.drive #bAct{bottom:142px;right:max(22px,env(safe-area-inset-right));min-width:66px;height:66px;border-radius:33px;font-size:11px}
-body.drive #bSleep{bottom:142px;right:calc(max(22px,env(safe-area-inset-right)) + 78px);font-size:11px}
-body.drive #bLamp{bottom:142px;right:calc(max(22px,env(safe-area-inset-right)) + 156px)}
-body.drive #bEat{bottom:142px;right:calc(max(22px,env(safe-area-inset-right)) + 234px)}
+#bAct{right:max(22px,env(safe-area-inset-right));bottom:96px;min-width:88px;height:88px;border-radius:44px;font-size:13px}
+#bFire{right:calc(max(22px,env(safe-area-inset-right)) + 104px);bottom:96px;min-width:76px;height:76px;border-radius:38px;border-color:rgba(255,120,100,.6)}
+#bBack{right:calc(max(22px,env(safe-area-inset-right)) + 82px);bottom:150px;font-size:11px}
+#bGas{right:max(22px,env(safe-area-inset-right));bottom:84px;height:96px;min-width:80px;border-radius:14px}
+#bBrk{right:calc(max(22px,env(safe-area-inset-right)) + 94px);bottom:84px;height:74px;min-width:74px;border-radius:14px}
+body.drive #bAct{bottom:196px;min-width:70px;height:70px;border-radius:35px;font-size:11px}
+body.drive #bBack{bottom:196px}
+#inv{position:fixed;left:50%;bottom:max(8px,env(safe-area-inset-bottom));transform:translateX(-50%);display:none;gap:6px;padding:5px;background:rgba(10,12,13,.5);border:1px solid rgba(255,255,255,.14);border-radius:10px;z-index:2}
+.slot{position:relative;width:52px;height:52px;border-radius:7px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;font-size:25px}
+.slot.on{border-color:#e8dfb8;background:rgba(232,223,184,.22)}
+.slot b{position:absolute;right:3px;bottom:1px;font-size:11px;font-weight:700;text-shadow:0 1px 2px #000}
+.slot small{position:absolute;left:0;right:0;top:-15px;font-size:9px;text-align:center;opacity:.7;letter-spacing:.03em}
 #stick{position:fixed;width:120px;height:120px;margin:-60px;border-radius:50%;border:1.5px solid rgba(255,255,255,.25);background:rgba(20,22,24,.2);display:none;pointer-events:none}
 #stick i{position:absolute;left:50%;top:50%;width:50px;height:50px;margin:-25px;border-radius:50%;background:rgba(255,255,255,.3)}
-#menu{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(rgba(6,8,10,.72),rgba(0,0,0,.9));z-index:5;text-align:center;padding:20px}
+.ov{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:6;background:rgba(0,0,0,.72);padding:18px}
+#paper{background:#d9d2bd;color:#1c1a22;max-width:440px;width:86vw;max-height:84vh;overflow:auto;padding:24px 26px 18px;transform:rotate(-1.2deg);box-shadow:0 10px 40px #000;font-family:"Segoe Script","Bradley Hand","Comic Sans MS",cursive;font-size:18px;line-height:1.55;white-space:pre-line;touch-action:pan-y}
+#paper h3{margin:0 0 10px;font:600 11px system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;opacity:.55}
+#paper .x{margin-top:16px;font:11px system-ui,sans-serif;opacity:.5;text-align:right}
+#jr{background:#15181a;border:1px solid #333;max-width:520px;width:90vw;max-height:86vh;overflow:auto;padding:18px 20px;font-size:13px;line-height:1.5;touch-action:pan-y}
+#jr h2{margin:0 0 4px;font-weight:400;letter-spacing:.2em;font-size:13px;opacity:.7}
+#jr .o{font-style:italic;margin:0 0 14px;color:#e8dfb8}
+#jr .n{border-top:1px solid #2a2e30;padding:9px 0;white-space:pre-line}
+#jr .n b{display:block;font-size:10px;letter-spacing:.12em;text-transform:uppercase;opacity:.55;margin-bottom:3px}
+#dead,#end{flex-direction:column;background:#000;text-align:center}
+#dead h1{font-weight:300;letter-spacing:.3em;color:#a33;font-size:clamp(20px,5vw,40px)}
+#end p{font-size:clamp(16px,3.2vw,24px);line-height:1.6;white-space:pre-line;font-style:italic;max-width:680px;transition:opacity 1.2s;min-height:5em}
+button.b{margin:8px;padding:13px 34px;font-size:15px;letter-spacing:.15em;background:none;color:#e8e6df;border:1px solid rgba(255,255,255,.4);border-radius:3px}
+#menu{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(rgba(6,8,10,.7),rgba(0,0,0,.9));z-index:7;text-align:center;padding:20px}
 #menu h1{font-weight:300;letter-spacing:.35em;font-size:clamp(26px,6vw,52px);margin:0 0 6px}
 #menu p{opacity:.6;max-width:520px;font-size:13px;line-height:1.5;margin:6px 0}
-#menu button{margin:8px;padding:13px 34px;font-size:15px;letter-spacing:.15em;background:none;color:#e8e6df;border:1px solid rgba(255,255,255,.4);border-radius:3px}
 #load{width:240px;height:2px;background:#222;margin:22px 0 14px}#load i{display:block;height:100%;width:0;background:#bbb}
-#q{font-size:12px;opacity:.7}
+#q{font-size:12px;opacity:.7;padding:8px}
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
-<div id="vig"></div><div id="fade"></div>
+<div id="fade"></div><div id="flash"></div><canvas id="face"></canvas>
 <div id="hud">
   <div id="day">Tag 1 · 08:00</div>
   <div class="row"><span class="lbl">Hunger</span><span class="bar"><i id="hHunger"></i></span></div>
   <div class="row"><span class="lbl">Sprit</span><span class="bar"><i id="hFuel"></i></span></div>
-  <div id="inv"></div>
+  <div id="obj"></div>
 </div>
 <div id="cross"></div><div id="msg"></div><div id="hint"></div>
 <div id="stick"><i></i></div>
-<div class="btn" id="bAct"></div><div class="btn" id="bLamp">Licht</div><div class="btn" id="bEat">Essen</div>
-<div class="btn" id="bSleep">Schlafen</div><div class="btn" id="bGas">GAS</div><div class="btn" id="bBrk">Bremse<br>Rück</div>
+<div id="inv"></div>
+<div class="btn" id="bAct"></div><div class="btn" id="bFire">Feuer</div><div class="btn" id="bBack">Nach hinten</div>
+<div class="btn" id="bGas">GAS</div><div class="btn" id="bBrk">Bremse<br>Rück</div>
+<div class="ov" id="note"><div id="paper"></div></div>
+<div class="ov" id="journal"><div id="jr"></div></div>
+<div class="ov" id="dead"><h1>ER HAT DICH GEFUNDEN</h1><button class="b" id="bRetry">NOCHMAL</button></div>
+<div class="ov" id="end"><p id="endT"></p><button class="b" id="bEnd" style="display:none">VON VORN</button></div>
 <div id="menu">
   <h1>LETZTE AUSFAHRT</h1>
   <p id="sub">Eine kleine Insel. Ein alter Bus. Am Anfang ist noch alles gut.</p>
   <div id="load"><i></i></div>
   <div id="btns" style="display:none">
-    <button id="bStart">WEITER</button><button id="bNew">NEU BEGINNEN</button>
+    <button class="b" id="bStart">WEITER</button><button class="b" id="bNew">NEU BEGINNEN</button>
     <div id="q">Grafik: <span id="qv">Mittel</span> (tippen zum Ändern)</div>
   </div>
-  <p style="margin-top:18px">Links: bewegen / lenken · Rechts: umsehen · Kopfhörer empfohlen</p>
+  <p style="margin-top:14px">Links: bewegen / lenken · Rechts: umsehen · Kopfhörer empfohlen</p>
 </div>
 <script type="module" src="/src/main.js"></script>
 </body>
