@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Letzte Ausfahrt</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;touch-action:none}
+html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#e8e6df}
+canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block}
+#vig{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,rgba(0,0,0,0) 45%,rgba(0,0,0,.55) 100%)}
+#fade{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity 1.6s}
+#hud{position:fixed;left:max(14px,env(safe-area-inset-left));top:max(10px,env(safe-area-inset-top));font-size:13px;letter-spacing:.04em;text-shadow:0 1px 3px #000;pointer-events:none;display:none}
+#hud .row{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+#hud .lbl{width:58px;opacity:.75;text-transform:uppercase;font-size:10px}
+.bar{width:110px;height:5px;background:rgba(255,255,255,.16);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;width:50%;background:#d8d2c0;border-radius:3px}
+#day{font-size:15px;font-weight:600;margin-bottom:8px}
+#inv{opacity:.85;font-size:12px}
+#msg{position:fixed;left:50%;top:18%;transform:translateX(-50%);max-width:80vw;text-align:center;font-size:17px;line-height:1.45;text-shadow:0 2px 6px #000;opacity:0;transition:opacity .8s;pointer-events:none;font-style:italic}
+#hint{position:fixed;left:50%;bottom:24%;transform:translateX(-50%);font-size:13px;opacity:.8;text-shadow:0 1px 4px #000;pointer-events:none}
+#cross{position:fixed;left:50%;top:50%;width:4px;height:4px;margin:-2px;border-radius:50%;background:rgba(255,255,255,.55);pointer-events:none;display:none}
+.btn{position:fixed;min-width:66px;height:66px;padding:0 10px;border-radius:33px;border:1.5px solid rgba(255,255,255,.35);background:rgba(20,22,24,.38);color:#eee;font-size:12px;font-weight:600;display:none;align-items:center;justify-content:center;text-align:center;backdrop-filter:blur(3px)}
+.btn.on{background:rgba(230,225,205,.35)}
+#bAct{right:max(22px,env(safe-area-inset-right));bottom:118px;min-width:84px;height:84px;border-radius:42px;font-size:13px}
+#bLamp{right:calc(max(22px,env(safe-area-inset-right)) + 100px);bottom:34px}
+#bEat{right:max(22px,env(safe-area-inset-right));bottom:34px}
+#bSleep{right:calc(max(22px,env(safe-area-inset-right)) + 100px);bottom:118px}
+#bGas{right:max(22px,env(safe-area-inset-right));bottom:30px;height:96px;min-width:80px;border-radius:14px}
+#bBrk{right:calc(max(22px,env(safe-area-inset-right)) + 94px);bottom:30px;height:74px;min-width:74px;border-radius:14px}
+body.drive #bAct{bottom:142px;right:max(22px,env(safe-area-inset-right));min-width:66px;height:66px;border-radius:33px;font-size:11px}
+body.drive #bSleep{bottom:142px;right:calc(max(22px,env(safe-area-inset-right)) + 78px);font-size:11px}
+body.drive #bLamp{bottom:142px;right:calc(max(22px,env(safe-area-inset-right)) + 156px)}
+body.drive #bEat{bottom:142px;right:calc(max(22px,env(safe-area-inset-right)) + 234px)}
+#stick{position:fixed;width:120px;height:120px;margin:-60px;border-radius:50%;border:1.5px solid rgba(255,255,255,.25);background:rgba(20,22,24,.2);display:none;pointer-events:none}
+#stick i{position:absolute;left:50%;top:50%;width:50px;height:50px;margin:-25px;border-radius:50%;background:rgba(255,255,255,.3)}
+#menu{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(rgba(6,8,10,.72),rgba(0,0,0,.9));z-index:5;text-align:center;padding:20px}
+#menu h1{font-weight:300;letter-spacing:.35em;font-size:clamp(26px,6vw,52px);margin:0 0 6px}
+#menu p{opacity:.6;max-width:520px;font-size:13px;line-height:1.5;margin:6px 0}
+#menu button{margin:8px;padding:13px 34px;font-size:15px;letter-spacing:.15em;background:none;color:#e8e6df;border:1px solid rgba(255,255,255,.4);border-radius:3px}
+#load{width:240px;height:2px;background:#222;margin:22px 0 14px}#load i{display:block;height:100%;width:0;background:#bbb}
+#q{font-size:12px;opacity:.7}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="vig"></div><div id="fade"></div>
+<div id="hud">
+  <div id="day">Tag 1 · 08:00</div>
+  <div class="row"><span class="lbl">Hunger</span><span class="bar"><i id="hHunger"></i></span></div>
+  <div class="row"><span class="lbl">Sprit</span><span class="bar"><i id="hFuel"></i></span></div>
+  <div id="inv"></div>
+</div>
+<div id="cross"></div><div id="msg"></div><div id="hint"></div>
+<div id="stick"><i></i></div>
+<div class="btn" id="bAct"></div><div class="btn" id="bLamp">Licht</div><div class="btn" id="bEat">Essen</div>
+<div class="btn" id="bSleep">Schlafen</div><div class="btn" id="bGas">GAS</div><div class="btn" id="bBrk">Bremse<br>Rück</div>
+<div id="menu">
+  <h1>LETZTE AUSFAHRT</h1>
+  <p id="sub">Eine kleine Insel. Ein alter Bus. Am Anfang ist noch alles gut.</p>
+  <div id="load"><i></i></div>
+  <div id="btns" style="display:none">
+    <button id="bStart">WEITER</button><button id="bNew">NEU BEGINNEN</button>
+    <div id="q">Grafik: <span id="qv">Mittel</span> (tippen zum Ändern)</div>
+  </div>
+  <p style="margin-top:18px">Links: bewegen / lenken · Rechts: umsehen · Kopfhörer empfohlen</p>
+</div>
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>

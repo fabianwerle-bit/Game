@@ -1,0 +1,20 @@
+plugins { id 'com.android.application' }
+android {
+    namespace 'de.letzteausfahrt.game'
+    compileSdk 34
+    defaultConfig {
+        applicationId 'de.letzteausfahrt.game'
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName '0.1.0'
+    }
+    // Fester Schlüssel im Repo, damit sich neue Versionen über alte installieren lassen (nur für Testbuilds!)
+    signingConfigs { debug { storeFile file('../debug.keystore'); storePassword 'android'; keyAlias 'androiddebugkey'; keyPassword 'android' } }
+    // Das gebaute Web-Spiel (web/dist) wird direkt als Asset eingebunden
+    sourceSets { main { assets.srcDirs = ['../../web/dist'] } }
+    aaptOptions { noCompress 'jpg', 'png', 'hdr', 'bin' }
+    buildTypes { release { minifyEnabled false; signingConfig signingConfigs.debug } }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}
+dependencies { implementation 'androidx.webkit:webkit:1.11.0' }
