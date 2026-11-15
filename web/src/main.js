@@ -630,7 +630,7 @@ const HOUR = 30, SLEEP_FROM = 22, HUNT_FROM = 20.5, DAWN = 30;
     }
 
     const day = mode === 'menu' ? 2 : S.day, hour = mode === 'menu' ? 18.5 : S.hour, cave = S.inMine && mode !== 'menu' && mode !== 'end';
-    weather.update(dt, t, day, hour, camera, indoor && (mode === 'walk' || mode === 'hide'), cave);
+    weather.update(dt, t, day, hour, camera, indoor && (mode === 'walk' || mode === 'hide'), cave, C.wx ? C : null);
     if (weather.thunder !== null) {
       audio.thunder(weather.thunder); weather.thunder = null;
       if (mode === 'walk' && !busy && Math.hypot(pl.x - fx.mast.x, pl.z - fx.mast.z) < 17 && Math.random() < 0.5) { // Blitzeinschlag am Mast

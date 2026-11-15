@@ -6,8 +6,8 @@ android {
         applicationId 'de.letzteausfahrt.game'
         minSdk 24
         targetSdk 34
-        versionCode 6
-        versionName '0.4.1'
+        versionCode 7
+        versionName '0.4.2'
     }
     // Fester Schlüssel im Repo, damit sich neue Versionen über alte installieren lassen (nur für Testbuilds!)
     signingConfigs { debug { storeFile file('../debug.keystore'); storePassword 'android'; keyAlias 'androiddebugkey'; keyPassword 'android' } }

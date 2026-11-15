@@ -10,7 +10,7 @@ export function createAdmin(api) {
   const load = (k, d) => { try { return Object.assign(d, JSON.parse(localStorage.getItem(k) || '{}')); } catch { return d; } };
   const set = load('la_set', { sens: 1, vib: true, btn: 1, diff: 1 });
   const ach = load('la_ach', {});
-  const C = { god: false, noHunger: false, infAmmo: false, infBatt: false, fast: false, noclip: false, fly: false, freeze: false, ts: 1, stalkerOff: false, stalkerFreeze: false, showStalker: false, fps: false };
+  const C = { god: false, noHunger: false, infAmmo: false, infBatt: false, fast: false, noclip: false, fly: false, freeze: false, ts: 1, stalkerOff: false, stalkerFreeze: false, showStalker: false, fps: false, wx: false, fog: 1, rain: -1 };
   const saveSet = () => { localStorage.setItem('la_set', JSON.stringify(set)); document.documentElement.style.setProperty('--bs', set.btn); };
   saveSet();
   const DIFF = [{ n: 'Spaziergang', sp: 0.84, hun: 0.7, gr: 1.6 }, { n: 'Normal', sp: 1, hun: 1, gr: 1 }, { n: 'Albtraum', sp: 1.12, hun: 1.3, gr: 0.75 }];
@@ -64,6 +64,8 @@ export function createAdmin(api) {
     for (let d = 1; d <= 6; d++) btn(r, 'Tag ' + d, () => { api.setS({ day: d }); A.openAdmin(); }, S.day === d);
     r = row(); for (const [l, v] of [['08', 8], ['12', 12], ['18', 18], ['20:30', 20.5], ['22', 22], ['00', 24], ['03', 27], ['05:30', 29.5]]) btn(r, l + ' Uhr', () => { api.setS({ hour: v }); });
     r = row(); tog(r, 'Zeit anhalten', 'freeze'); for (const v of [1, 4, 12]) btn(r, 'Zeit ×' + v, () => { C.ts = v; A.openAdmin(); }, C.ts === v);
+    r = row(); r.append('Nebel: '); for (const [l, v] of [['wie der Tag', 0], ['klar', 0.25], ['leicht', 1], ['dicht', 3], ['Suppe', 7]]) btn(r, l, () => { if (!v) { C.fog = 1; } else C.fog = v; C.wx = C.fog !== 1 || C.rain >= 0; A.openAdmin(); }, v ? C.wx && C.fog === v && v !== 1 : C.fog === 1);
+    r = row(); r.append('Regen: '); for (const [l, v] of [['wie der Tag', -1], ['aus', 0], ['Niesel', 0.2], ['Regen', 0.6], ['Sturzregen', 1]]) btn(r, l, () => { C.rain = v; C.wx = C.fog !== 1 || C.rain >= 0; A.openAdmin(); }, C.rain === v);
     h('Teleport'); r = row();
     for (const k in api.places) btn(r, api.places[k], () => { close(); api.goto(k); });
     h('Verfolger'); r = row();

@@ -106,7 +106,7 @@ export function createBuildings(assets, world, scene) {
     for (const e of L) { const ty = Array.isArray(e) ? e[0] : e, mw = Array.isArray(e) ? e[1] : mw0, [K, name, nat, op, insert, leaf] = KT[ty], sx = mw / nat, cx = x + mw / 2; x += mw;
       const m = new THREE.Group(); m.position.set(cx, 0, 0.125); m.scale.set(sx, sy, 1); sg.add(m);
       const pc = n => { const c = K.getObjectByName(n).clone(); c.position.set(nat / 2, 0, 0); return c; };
-      m.add(pc(name)); if (insert) m.add(pc(insert));
+      m.add(pc(name)); if (insert && !o.noinsert) m.add(pc(insert));
       if (leaf && !o.noleaf) { const pv = new THREE.Group(); pv.position.set(leaf[2], 0, 0.02); pv.rotation.y = -1.95; const lf = K.getObjectByName(leaf[0]).clone(); lf.position.set(leaf[1], 0, 0); pv.add(lf); m.add(pv); }
       if (op) ops.push(op.door ? { x: cx, w: op.w * sx, door: true, h: op.h * sy, nobar: o.nobar } : { x: cx, w: op.w * sx, y0: op.y0 * sy, y1: op.y1 * sy, kit: true }); }
     return ops;
@@ -116,7 +116,7 @@ export function createBuildings(assets, world, scene) {
     const g = sub(parent, x, z, ry), { w, d } = o, hgt = o.kit ? o.h || 3.0 : o.h || 2.7, wall = o.kit ? (o.kit.fac ? mats.brick : mats.plaster) : o.wall || mats.plaster, tile = o.tile || 2, p = o.pitch || 0.62;
     const sides = { front: [w, 0, d / 2, 0], back: [w, 0, -d / 2, Math.PI], left: [d, -w / 2, 0, -Math.PI / 2], right: [d, w / 2, 0, Math.PI / 2] };
     if (o.kit) { const def = o.kit.fac ? 'fwall' : 'wall';
-      for (const k in sides) { const len = sides[k][0], L = o.kit[k] || Array(Math.max(1, Math.round(len / 3))).fill(def); o[k] = facadeRun(sub(g, sides[k][1], sides[k][2], sides[k][3]), len, hgt, L, o); }
+      for (const k in sides) { const len = sides[k][0], L = o.kit[k] || Array(Math.max(1, Math.round(len / 3))).fill(def); o[k] = facadeRun(sub(g, sides[k][1], sides[k][2], sides[k][3]), len, hgt, L, o); facadeRun(sub(g, sides[k][1], sides[k][2], sides[k][3] + Math.PI), len - 0.3, hgt, L.slice().reverse(), { noleaf: true, noinsert: true }); }
       const KP = o.kit.fac ? M.modular_factory_facade : M.modular_urban_apartments_facade, pn = KP.getObjectByName('wall_pier_corner_01');
       if (pn) for (const [cx, cz, r] of [[w / 2, d / 2, 0], [-w / 2, d / 2, -Math.PI / 2], [-w / 2, -d / 2, Math.PI], [w / 2, -d / 2, Math.PI / 2]]) { const c = pn.clone(); c.position.set(cx + Math.sign(cx) * 0.02, 0, cz + Math.sign(cz) * 0.02); c.rotation.y = r; c.scale.y = hgt / 3; g.add(c); } }
     add(g, texBox(w + 0.4, 0.24, d + 0.4, mats.concrete, 3), 0, -0.02, 0);
@@ -198,7 +198,7 @@ export function createBuildings(assets, world, scene) {
   // ================= JAGDHÜTTE =================
   {
     const g = site(world.pois.cabin);
-    const h = house(g, 0, -4, 0, { w: 6, d: 5, h: 2.5, wall: mats.planks, front: [{ x: -1.2, w: 1.1, door: true }, { x: 1.5, w: 1.0, lit: true }], left: [{ x: 0, w: 1.0 }], chimney: true, name: 'cabin' });
+    const h = house(g, 0, -4, 0, { w: 6, d: 5, kit: { front: ['door', 'win'], left: ['win', 'wall'] }, chimney: true, name: 'cabin' });
     add(h, texBox(6.2, 0.2, 1.8, mats.deck), 0, 0.05, 3.4); for (const x of [-2.9, 2.9]) add(h, texBox(0.14, 2.3, 0.14, mats.planks), x, 1.15, 4.2);
     prop(h, 'vintage_day_bed', -1.7, -1.9, 0, 1, 0.13, [1.0, 0.45]); prop(h, 'WoodenTable_01', 1.6, -1.9, 0, 1, 0.13, [0.9, 0.33]); prop(h, 'painted_wooden_chair_01', 1.4, -1.1, Math.PI, 1, 0.13);
     prop(h, 'barrel_stove', 2.4, 0.6, 0, 1, 0.13, 0.35); prop(h, 'vintage_oil_lamp', 2.2, -1.9, 0, 1.2, 0.68); prop(h, 'wooden_axe', -2.86, 0.8, Math.PI / 2, 1.3, 1.3);
@@ -396,6 +396,7 @@ export function createBuildings(assets, world, scene) {
     add(g, texBox(16, 8, 9, mats.rock, 4), 0, 3.6, -12, true);
     const r1 = texBox(7, 5, 6, mats.rock, 4); r1.rotation.y = 0.5; add(g, r1, -9, 2.2, -9.5, true); const r2 = texBox(7, 6, 6, mats.rock, 4); r2.rotation.y = -0.4; add(g, r2, 9, 2.6, -9.5, true);
     const r3 = texBox(12, 3, 7, mats.rock, 4); r3.rotation.x = 0.25; add(g, r3, 0, 8.2, -12.5);
+    for (const x of [-6.9, 6.9]) { const ms = M.mountainside.clone(); ms.position.set(x, -0.3, -6.3); ms.scale.set(1.05, 0.9, 1); g.add(ms); } { const o = new THREE.Group(), ms = M.rock_face_01.clone(); ms.rotation.x = Math.PI / 4; o.add(ms); o.position.set(-0.5, 3.0, -7.4); o.scale.set(1.5, 1.0, 0.8); g.add(o); }
     for (const x of [-1.45, 1.45]) add(g, texBox(0.3, 2.7, 0.3, mats.planks), x, 1.35, -7.3, true);
     add(g, texBox(3.5, 0.32, 0.34, mats.planks), 0, 2.85, -7.3);
     add(g, new THREE.Mesh(new THREE.PlaneGeometry(2.6, 2.7), new THREE.MeshBasicMaterial({ color: 0x000000 })), 0, 1.35, -7.47);
@@ -420,6 +421,10 @@ export function createBuildings(assets, world, scene) {
     wall(-1, 36, -3.5, -1.5); wall(-1, 14.5, 1.5, 3.5); wall(17.5, 36, 1.5, 3.5); wall(13.5, 14.5, 3.5, 15.5); wall(17.5, 18.5, 3.5, 15.5); wall(13.5, 18.5, 15.5, 16.5);
     wall(36, 43, -4.5, -3.5); wall(36, 43, 3.5, 4.5); wall(43, 44, -4.5, 4.5); wall(-1.6, -0.6, -1.5, 1.5);
     for (let x = 2; x < 36; x += 4) { if (x > 13 && x < 19) continue; for (const z of [-1.36, 1.36]) add(g, texBox(0.22, Hh, 0.22, mats.planks), x, Hh / 2, z); add(g, texBox(0.26, 0.2, 3), x, Hh - 0.1, 0).material = mats.planks; }
+    { const RF = M.rock_face_01, rf = (x, z, ry, s = 1) => { const o = new THREE.Group(), r = RF.clone(); r.rotation.x = Math.PI / 4; o.add(r); o.position.set(x, -0.05, z); o.rotation.y = ry; o.scale.set(s, 0.58, 0.7); g.add(o); };
+      for (let x = 2.4; x < 36; x += 4.9) { rf(x - 0.35, -1.42, 0); if (x < 13 || x > 19) rf(x + 0.35, 1.42, Math.PI); }
+      for (let z = 5.5; z < 15; z += 4.9) { rf(14.58, z, Math.PI / 2); rf(17.42, z, -Math.PI / 2); }
+      rf(39.5, -3.42, 0, 1.3); rf(39.5, 3.42, Math.PI, 1.3); }
     for (const z of [-0.45, 0.45]) add(g, texBox(36, 0.08, 0.07, mats.steel), 18, 0.05, z);
     add(g, texBox(1.6, 0.7, 1.1, mats.paint, 1.2), 26.5, 0.75, 0, true);
     add(g, texBox(0.08, 2.1, 1.2, mats.planks, 1.5), -0.56, 1.05, 0);

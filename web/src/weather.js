@@ -40,15 +40,15 @@ export function createWeather(scene, renderer, world, scenery) {
   const st = { fog: 0.003, rain: 0, light: 1, daylight: 1, birds: 1, storm: 0, flash: 0, nextFlash: 20, thunder: null, indoor: 0, vis: 300 };
   const params = day => DAYS[Math.min(DAYS.length - 1, day - 1)];
 
-  st.update = (dt, t, day, hour, cam, indoor, cave) => {
+  st.update = (dt, t, day, hour, cam, indoor, cave, ov) => {
     if (hour >= 24) hour -= 24;
     const p = params(day);
     // Tag 2: Nieselregen erst am Nachmittag. Abends immer etwas mehr Nebel.
     const eve = sstep(15, 20, hour);
-    const rainNow = day === 1 ? 0 : (day === 2 ? p.rain * sstep(13, 16, hour) : p.rain);
+    const rainNow = ov && ov.rain >= 0 ? ov.rain : day === 1 ? 0 : (day === 2 ? p.rain * sstep(13, 16, hour) : p.rain);
     const daylight = sstep(5.5, 8, hour) * (1 - sstep(18.3, 21.3, hour));
     st.daylight = daylight; st.rain = rainNow; st.birds = p.birds * daylight * (1 - eve * 0.7); st.storm = p.storm; st.light = p.light;
-    st.fog = p.fog * (1 + eve * 0.7) + (1 - daylight) * 0.004;
+    st.fog = (p.fog * (1 + eve * 0.7) + (1 - daylight) * 0.004) * (ov ? ov.fog : 1);
     st.vis = Math.min(400, 2.6 / st.fog);
     const lum = p.light * (0.04 + 0.96 * daylight);
     // Blitze

@@ -52,7 +52,8 @@ Im Browser testen: `cd web && npm install && npx vite`
 
 Alle Texturen, 3D-Scans (Möbel, Pistole, Requisiten, abgedecktes Auto) und der Himmel stammen von
 [Poly Haven](https://polyhaven.com) (CC0). Tannen, Farn und Gras sind aus Poly-Haven-Scans gebacken.
-Dorfhäuser, Kapelle, Hafenbüro, Lagerhalle, Tankstelle, Leuchtturm-Haus, Bergwerks-Schuppen und Masthütte tragen außen
-gescannte Fassadenteile (Poly Haven `modular_urban_apartments_facade` und `modular_factory_facade`); Dächer, Innenwände,
-Jagdhütte, Leuchtturm, Stollen und der Bus sind selbst modelliert und mit Fototexturen belegt (lizenzfreie Scans davon gibt es nicht).
+Dorfhäuser, Jagdhaus, Kapelle, Hafenbüro, Lagerhalle, Tankstelle, Leuchtturm-Haus, Bergwerks-Schuppen und Masthütte
+bestehen innen und außen aus gescannten Wandteilen (Poly Haven `modular_urban_apartments_facade`, `modular_factory_facade`),
+Bergwerk und Stollen aus gescanntem Fels (`mountainside`, `rock_face_01`). Selbst modelliert bleiben Dächer, Böden,
+der Leuchtturm-Turm, das Tankstellen-Vordach und der Bus (lizenzfreie Scans davon gibt es nicht).
 Ton wird komplett im Spiel synthetisiert.
