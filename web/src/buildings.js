@@ -49,7 +49,7 @@ export function createBuildings(assets, world, scene) {
   const add = (g, mesh, x, y, z, solid) => { mesh.position.set(x, y, z); g.add(mesh); if (solid) { const p = mesh.geometry.parameters, w = toWorld(g, x, z); world.addBox(w.x, w.z, p.width / 2, p.depth / 2, g.userData.ry + mesh.rotation.y); } return mesh; };
   // solid: Zahl = Kreisradius, [hw, hd] = Box
   const prop = (g, name, x, z, ry = 0, s = 1, y = 0, solid = 0) => { const o = M[name].clone(); o.position.set(x, y, z); o.rotation.y = ry; o.scale.setScalar(s); g.add(o);
-    if (name === 'ornate_mirror_01') { g.updateWorldMatrix(true, true); fx.mirrors.push(o.getWorldPosition(new THREE.Vector3())); }
+    if (name === 'ornate_mirror_01') { g.updateWorldMatrix(true, true); fx.mirrors.push(o.getWorldPosition(new THREE.Vector3())); (fx.mirrorObjs = fx.mirrorObjs || []).push(o); }
     if (name === 'hanging_picture_frame_01') { const ph = new THREE.Mesh(new THREE.PlaneGeometry(0.4, 0.56), photoM); ph.position.z = 0.03; o.add(ph); g.updateWorldMatrix(true, true); fx.photos.push(o.getWorldPosition(new THREE.Vector3())); }
     if (solid) { const w = toWorld(g, x, z); if (solid.length) world.addBox(w.x, w.z, solid[0], solid[1], g.userData.ry + ry); else world.addCircle(w.x, w.z, solid); } return o; };
   const zone = (g, lx, lz, hw, hd, name) => { const w = toWorld(g, lx, lz), r = g.userData.ry; world.zones.push({ x: w.x, z: w.z, hw, hd, c: Math.cos(r), s: Math.sin(r), name }); };
@@ -64,9 +64,10 @@ export function createBuildings(assets, world, scene) {
     fuse: () => grp(bm(new THREE.CylinderGeometry(0.02, 0.02, 0.09, 8), mats.glass, 0, 0.02, 0), bm(new THREE.CylinderGeometry(0.022, 0.022, 0.02, 8), mats.brass, 0, 0.065, 0), bm(new THREE.CylinderGeometry(0.022, 0.022, 0.02, 8), mats.brass, 0, -0.02, 0)),
     lightbar: () => grp(bm(new THREE.BoxGeometry(0.5, 0.06, 0.08), mats.dark, 0, 0.03, 0), bm(new THREE.CylinderGeometry(0.06, 0.06, 0.06, 10), mats.steel, -0.16, 0.09, 0), bm(new THREE.CylinderGeometry(0.06, 0.06, 0.06, 10), mats.steel, 0.16, 0.09, 0)),
     lockkit: () => grp(bm(new THREE.BoxGeometry(0.16, 0.05, 0.07), mats.steel, 0, 0.025, 0), bm(new THREE.CylinderGeometry(0.012, 0.012, 0.2, 6), mats.brass, 0, 0.06, 0)),
+    carbatt: () => grp(bm(new THREE.BoxGeometry(0.3, 0.2, 0.18), mats.dark, 0, 0.1, 0), bm(new THREE.CylinderGeometry(0.02, 0.02, 0.04, 6), mats.brass, -0.09, 0.22, 0), bm(new THREE.CylinderGeometry(0.02, 0.02, 0.04, 6), mats.steel, 0.09, 0.22, 0), bm(new THREE.BoxGeometry(0.31, 0.03, 0.19), mats.red, 0, 0.19, 0)),
     planks: () => grp(bm(new THREE.BoxGeometry(1.5, 0.04, 0.16), mats.planks, 0, 0.02, 0), bm(new THREE.BoxGeometry(1.5, 0.04, 0.16), mats.planks, 0.05, 0.06, 0.03), bm(new THREE.BoxGeometry(1.5, 0.04, 0.16), mats.planks, -0.04, 0.1, -0.02)),
   };
-  const ITEM = { can: ['russian_food_cans_01', 2.2, 'Konserven'], longlife: ['long_life_food', 1.2, 'Notration'], apple: ['food_apple_01', 2.0, 'Apfel'], fuel: ['metal_jerrycan_green', 1.0, 'Benzinkanister'], ammo: ['ammo_box', 1.3, 'Munition'], pistol: ['service_pistol', 1.3, 'Pistole'], key: [null, 1.6, 'Schlüssel'], note: [null, 1, 'Zettel'], battery: [null, 1.5, 'Batterien'], tape: [null, 1.5, 'Kassette'], map: [null, 1, 'Inselkarte'], fuse: [null, 1.6, 'Sicherung'], tyre: ['old_tyre', 1, 'Ersatzreifen'], lightbar: [null, 1, 'Zusatzscheinwerfer'], lockkit: [null, 1.3, 'Türriegel'], canister: ['metal_jerrycan_green', 1.15, 'Reservekanister'], planks: [null, 1, 'Bretter'], boombox: ['boombox', 0.7, 'Kofferradio'] };
+  const ITEM = { can: ['russian_food_cans_01', 2.2, 'Konserven'], longlife: ['long_life_food', 1.2, 'Notration'], apple: ['food_apple_01', 2.0, 'Apfel'], fuel: ['metal_jerrycan_green', 1.0, 'Benzinkanister'], ammo: ['ammo_box', 1.3, 'Munition'], pistol: ['service_pistol', 1.3, 'Pistole'], key: [null, 1.6, 'Schlüssel'], note: [null, 1, 'Zettel'], battery: [null, 1.5, 'Batterien'], tape: [null, 1.5, 'Kassette'], map: [null, 1, 'Inselkarte'], fuse: [null, 1.6, 'Sicherung'], tyre: ['old_tyre', 1, 'Ersatzreifen'], lightbar: [null, 1, 'Zusatzscheinwerfer'], lockkit: [null, 1.3, 'Türriegel'], canister: ['metal_jerrycan_green', 1.15, 'Reservekanister'], planks: [null, 1, 'Bretter'], carbatt: [null, 1, 'Autobatterie'], boombox: ['boombox', 0.7, 'Kofferradio'] };
   const item = (g, type, x, y, z, ry = 0, extra = {}) => {
     let o;
     if (type === 'note') { o = new THREE.Mesh(new THREE.PlaneGeometry(0.21, 0.3), mats.paper); if (!extra.wall) o.rotation.x = -Math.PI / 2; const h = new THREE.Group(); h.add(o); o = h; }
@@ -87,14 +88,23 @@ export function createBuildings(assets, world, scene) {
     for (const o of ops.slice().sort((a, b) => a.x - b.x)) {
       const a = o.x - o.w / 2, b = o.x + o.w / 2; seg(x, a, 0, hgt, true);
       if (o.door) { seg(a, b, o.h || 2.1, hgt, false); if (o.w < 2 && !o.nobar) { const wp = toWorld(g, (a + b) / 2, 0); fx.doorways.push({ x: wp.x, z: wp.z, ry: g.userData.ry, w: o.w, y: g.getWorldPosition(new THREE.Vector3()).y, bar: null }); } }
-      else { const y0 = o.y0 ?? 0.95, y1 = o.y1 ?? 2.05; seg(a, b, 0, y0, true); seg(a, b, y1, hgt, false); add(g, new THREE.Mesh(new THREE.PlaneGeometry(b - a, y1 - y0), o.lit ? mats.winLit : mats.glass), (a + b) / 2, (y0 + y1) / 2, 0); add(g, texBox(0.05, y1 - y0, TH + 0.04, mats.dark), (a + b) / 2, (y0 + y1) / 2, 0); add(g, texBox(b - a + 0.1, 0.06, TH + 0.08, mats.dark), (a + b) / 2, y0, 0); }
+      else { const y0 = o.y0 ?? 0.95, y1 = o.y1 ?? 2.05; seg(a, b, 0, y0, true); seg(a, b, y1, hgt, false); if (!o.kit) { add(g, new THREE.Mesh(new THREE.PlaneGeometry(b - a, y1 - y0), o.lit ? mats.winLit : mats.glass), (a + b) / 2, (y0 + y1) / 2, 0); add(g, texBox(0.05, y1 - y0, TH + 0.04, mats.dark), (a + b) / 2, (y0 + y1) / 2, 0); add(g, texBox(b - a + 0.1, 0.06, TH + 0.08, mats.dark), (a + b) / 2, y0, 0); } }
       x = b;
     }
     seg(x, len / 2, 0, hgt, true);
   };
   // Haus: Tür vorn (lokal +Z), Satteldach, Kollision, Innenraum-Zone
   const house = (parent, x, z, ry, o) => {
-    const g = sub(parent, x, z, ry), { w, d } = o, hgt = o.h || 2.7, wall = o.wall || mats.plaster, tile = o.tile || 2, p = o.pitch || 0.62;
+    const g = sub(parent, x, z, ry), { w, d } = o, hgt = o.kit ? 3.0 : o.h || 2.7, wall = o.kit ? mats.plaster : o.wall || mats.plaster, tile = o.tile || 2, p = o.pitch || 0.62;
+    // gescannter Fassaden-Bausatz (3-m-Module): außen echte Wand-, Fenster- und Türteile, innen eigene Wand
+    const KIT = M.modular_urban_apartments_facade, kp = n => { const c = KIT.getObjectByName(n).clone(); c.position.set(1.5, 0, 0); return c; };
+    const sides = { front: [w, 0, d / 2, 0], back: [w, 0, -d / 2, Math.PI], left: [d, -w / 2, 0, -Math.PI / 2], right: [d, w / 2, 0, Math.PI / 2] };
+    if (o.kit) for (const k in sides) { const L = o.kit[k] || (sides[k][0] > 7.5 ? ['wall', 'wall', 'wall'] : ['wall', 'wall']), len = sides[k][0], mw = len / L.length, sx = mw / 3; o.kit[k] = L;
+      o[k] = L.map((ty, i) => { const cx = -len / 2 + (i + 0.5) * mw; return ty === 'door' ? { x: cx, w: 1.1 * sx, door: true, h: 2.24 } : ty === 'win' ? { x: cx, w: 1.02 * sx, y0: 0.5, y1: 2.2, kit: true } : null; }).filter(Boolean);
+      const sg = sub(g, sides[k][1], sides[k][2], sides[k][3]); L.forEach((ty, i) => { const m = new THREE.Group(); m.position.set(-len / 2 + (i + 0.5) * mw, 0, 0.125); m.scale.x = sx; sg.add(m);
+        m.add(kp(ty === 'door' ? 'wall_door_centered_small_02' : ty === 'win' ? 'wall_window_centered_small_02' : 'wall_standard_standard_01')); if (ty === 'win') m.add(kp('window_centered_small_02'));
+        if (ty === 'door') { const pv = new THREE.Group(); pv.position.set(-0.56, 0, 0.02); pv.rotation.y = -1.95; const lf = KIT.getObjectByName('door_centered_small_02').clone(); lf.position.set(2.06, 0, 0); pv.add(lf); m.add(pv); } }); }
+    if (o.kit) for (const [cx, cz, r] of [[w / 2, d / 2, 0], [-w / 2, d / 2, -Math.PI / 2], [-w / 2, -d / 2, Math.PI], [w / 2, -d / 2, Math.PI / 2]]) { const c = KIT.getObjectByName('wall_pier_corner_01').clone(); c.position.set(cx + Math.sign(cx) * 0.02, 0, cz + Math.sign(cz) * 0.02); c.rotation.y = r; g.add(c); }
     add(g, texBox(w + 0.4, 0.24, d + 0.4, mats.concrete, 3), 0, -0.02, 0);
     const fl = texBox(w - 0.2, 0.04, d - 0.2, o.floor || mats.deck, 1.6); add(g, fl, 0, 0.11, 0);
     wallRun(sub(g, 0, d / 2, 0), w, hgt, wall, o.front, tile); wallRun(sub(g, 0, -d / 2, Math.PI), w, hgt, wall, o.back || [], tile);
@@ -162,7 +172,7 @@ export function createBuildings(assets, world, scene) {
     prop(g, 'old_tyre', -9.8, zc - 2.2, 0, 1, 0.3); prop(g, 'old_tyre', -9.7, zc - 1.4, 1, 1, 0.3); prop(g, 'Barrel_01', -7.0, zc - 2.3, 0, 1, 0.06, 0.35); prop(g, 'wooden_crate_01', -9.6, zc + 0.6, 0.2, 1, 0.06, [0.42, 0.22]);
     item(g, 'ammo', -9.6, 0.42, zc + 0.6, 0.5); item(g, 'fuel', -7.6, 0.06, zc - 1.2, 0.6);
     prop(g, 'covered_car', 10.5, -5.5, 0.3, 1, 0.06, [1.0, 2.3]); { const w = toWorld(g, 10.5, -5.5); fx.horn = new THREE.Vector3(w.x, world.pois.station.y + 1, w.z); }
-    item(g, 'tyre', -9.4, 0.06, zc - 0.4, 0.3); item(g, 'tyre', -9.1, 0.06, zc + 1.6, 1.3); item(g, 'battery', 3.4, 1.02, zc - 1.5, 0.4); item(g, 'lightbar', -7.2, 0.06, zc + 0.9, 0.5);
+    item(g, 'carbatt', -8.0, 0.06, zc - 2.4, 0.4); item(g, 'tyre', -9.4, 0.06, zc - 0.4, 0.3); item(g, 'tyre', -9.1, 0.06, zc + 1.6, 1.3); item(g, 'battery', 3.4, 1.02, zc - 1.5, 0.4); item(g, 'lightbar', -7.2, 0.06, zc + 0.9, 0.5);
     prop(g, 'Barrel_01', -11.6, -5.2, 0, 1, 0.06, 0.35); prop(g, 'metal_trash_can', 6.6, -4.2, 0, 1, 0.06, 0.3); prop(g, 'propane_tank', 7.4, -4.25, 0, 1, 0.06, 0.2); prop(g, 'utility_box_01', -6.3, -4.38, 0, 1, 1.0);
     prop(g, 'street_lamp_02', 13, 9.5, 2.2, 1, 0, 0.2);
     item(g, 'fuel', 2.9, 0.24, cz + 0.2, 2.0); item(g, 'fuel', -12.0, 0.06, -3.4, 1.1);
@@ -225,7 +235,7 @@ export function createBuildings(assets, world, scene) {
     prop(wh, 'old_military_crate', -3.2, -2.6, 0.2, 1, 0.13, [0.9, 0.3]); prop(wh, 'old_military_crate', -3.1, -2.5, -0.1, 1, 0.43); prop(wh, 'wooden_crate_01', 3.3, -3.0, 0.4, 1.3, 0.13, [0.55, 0.3]); prop(wh, 'wooden_crate_01', 3.6, -1.7, 1.5, 1.3, 0.13, [0.3, 0.55]);
     prop(wh, 'Barrel_01', -3.9, 2.6, 0, 1, 0.13, 0.35); prop(wh, 'Barrel_01', -3.1, 3.0, 1, 1, 0.13, 0.35); shelf(wh, 0, -3.5); shelf(wh, 1.3, -3.5);
     item(wh, 'ammo', -3.1, 0.74, -2.5, 0.4); item(wh, 'fuel', 3.9, 0.13, 0.5, 0.8); item(wh, 'can', 0, 1.09, -3.5, 0.3); item(wh, 'longlife', 1.3, 0.61, -3.5, 0.2); item(wh, 'fuel', -4.2, 0.13, 0.6, 2);
-    tube(wh, 0, 3.9, 0, 2.4, 'lamp'); item(wh, 'map', 3.3, 0.6, -3.0, 0.3); item(wh, 'planks', -1.6, 0.13, 3.0, 1.2); item(wh, 'battery', 1.3, 1.09, -3.5, 0.6);
+    tube(wh, 0, 3.9, 0, 2.4, 'lamp'); item(wh, 'carbatt', -3.6, 0.13, -1.2, 1.1); item(wh, 'map', 3.3, 0.6, -3.0, 0.3); item(wh, 'planks', -1.6, 0.13, 3.0, 1.2); item(wh, 'battery', 1.3, 1.09, -3.5, 0.6);
     // Büro des Hafenmeisters
     const of = house(g, 16, -2, -Math.PI / 2, { w: 5.2, d: 4.2, front: [{ x: -1.2, w: 1.1, door: true, nobar: true }, { x: 1.1, w: 1.2 }], right: [{ x: 0, w: 1.0 }], sign: 'HAFENMEISTER', signW: 2.6, signX: 1.0, signBg: '#1c2c3c', name: 'office' });
     door(of, 'office', -1.2, 2.1);
@@ -242,7 +252,8 @@ export function createBuildings(assets, world, scene) {
       const by = -world.pois.harbor.y + 0.12, boat = new THREE.Group(); boat.position.set(-2.6, by, pz - L + 3); g.add(boat);
       boat.add(bm(new THREE.BoxGeometry(1.5, 0.12, 4.2), mats.planks, 0, 0, 0)); for (const s of [-1, 1]) { const sd = bm(new THREE.BoxGeometry(0.1, 0.55, 4.3), mats.planks, s * 0.78, 0.27, 0); sd.rotation.z = -s * 0.2; boat.add(sd); }
       boat.add(bm(new THREE.BoxGeometry(1.6, 0.5, 0.1), mats.planks, 0, 0.25, 2.1)); boat.add(bm(new THREE.BoxGeometry(1.5, 0.5, 0.1), mats.planks, 0, 0.25, -2.1)); boat.add(bm(new THREE.BoxGeometry(1.4, 0.06, 0.3), mats.deck, 0, 0.3, 0.3)); boat.add(bm(new THREE.BoxGeometry(0.3, 0.6, 0.35), mats.dark, 0, 0.5, 2.3));
-      g.updateWorldMatrix(true, true); fx.boat = boat.getWorldPosition(new THREE.Vector3()); fx.boat.y += 1.2; fx.boatMesh = boat;
+      g.updateWorldMatrix(true, true); fx.boat = boat.getWorldPosition(new THREE.Vector3()); fx.boat.y = world.pois.harbor.y + 1.2; fx.boatMesh = boat;
+      for (const s of [-0.25, 0.25]) add(g, texBox(0.06, 4.6, 0.06, mats.steel), -1.58, by + 2.1, pz - L + 3 + s); for (let yy = 0.3; yy < 4.4; yy += 0.4) add(g, texBox(0.05, 0.05, 0.5, mats.steel), -1.58, by + yy, pz - L + 3);
       const f = new THREE.Group(); f.add(bm(new THREE.BoxGeometry(7, 3.2, 22), mats.white, 0, 1.2, 0)); f.add(bm(new THREE.BoxGeometry(7.1, 0.9, 22.1), mats.red, 0, 0.1, 0)); f.add(bm(new THREE.BoxGeometry(5.5, 2.6, 9), mats.white, 0, 4.1, -3)); f.add(bm(new THREE.CylinderGeometry(0.7, 0.8, 2.6, 10), mats.red, 0, 6.6, -4)); f.add(bm(new THREE.BoxGeometry(5.6, 0.7, 9.1), mats.dark, 0, 4.4, -3));
       f.position.set(0, by + 0.4, pz - L - 13); g.add(f); fx.ferry3d = { obj: f, home: f.position.clone() }; f.visible = false;
     }
@@ -261,7 +272,7 @@ export function createBuildings(assets, world, scene) {
     const W1 = [{ x: -1.5, w: 1.1, door: true }, { x: 1.4, w: 1.2, lit: true }];
     const builders = [
       s => { // Dorfladen
-        const h = house(g, s.lx, s.lz, s.ry, { w: 8, d: 6, wall: mats.brick, floor: tileMat, front: [{ x: -2.4, w: 1.2, door: true }, { x: 1.3, w: 3.2, y0: 0.8, y1: 2.15 }], sign: 'LADEN', signX: -2.4, signW: 1.8, name: 'shop' });
+        const h = house(g, s.lx, s.lz, s.ry, { w: 8, d: 6, kit: { front: ['door', 'win', 'win'], left: ['wall', 'win'] }, floor: tileMat, sign: 'LADEN', signX: -2.67, signW: 1.8, name: 'shop' });
         for (const x of [-2.9, -1.5, 0.4, 1.8]) shelf(h, x, -2.5); shelf(h, 3.3, 0.2, Math.PI / 2);
         add(h, texBox(2.2, 1.0, 0.7, mats.planks), 0.2, 0.6, 0.6, true); tube(h, 0, 2.62, -0.6, 2.4, 'shop'); emit(h, 0, 2.3, -0.6, 0xdfe8ff, 12, 12, 'shop');
         item(h, 'note', 0.5, 1.12, 0.6, 0.2, { note: 'shop' }); item(h, 'can', -2.9, 1.09, -2.5); item(h, 'can', -1.5, 0.61, -2.5, 1); item(h, 'longlife', 0.4, 1.09, -2.5, 0.2); item(h, 'can', 1.8, 1.57, -2.5, 2);
@@ -287,7 +298,7 @@ export function createBuildings(assets, world, scene) {
         }
       },
       s => { // Gasthaus
-        const h = house(g, s.lx, s.lz, s.ry, { w: 9, d: 7, wall: mats.plasterY, front: [{ x: 0, w: 1.2, door: true }, { x: -2.9, w: 1.4, lit: true }, { x: 2.9, w: 1.4, lit: true }], back: [{ x: 2, w: 1.2 }], sign: 'GASTHAUS', signW: 2.6, signBg: '#3a2416', chimney: true, name: 'pub' });
+        const h = house(g, s.lx, s.lz, s.ry, { w: 9, d: 7, kit: { front: ['win', 'door', 'win'], back: ['wall', 'win', 'wall'], right: ['win', 'wall'] }, sign: 'GASTHAUS', signW: 2.6, signBg: '#3a2416', chimney: true, name: 'pub' });
         prop(h, 'dining_table', -2.2, -0.8, 0, 0.8, 0.13, [0.9, 0.56]); for (const [x, z, r] of [[-2.9, 0.1, Math.PI], [-1.5, 0.1, Math.PI], [-2.9, -1.7, 0], [-1.5, -1.7, 0]]) prop(h, 'painted_wooden_chair_01', x, z, r, 1, 0.13);
         prop(h, 'Sofa_01', 3.0, -2.9, 0, 1.1, 0.13, [0.85, 0.36]); prop(h, 'wooden_bookshelf_worn', -3.5, -3.1, 0, 1, 0.13, [0.7, 0.3]); add(h, texBox(3.2, 1.05, 0.6, mats.planks), 2.6, 0.65, 1.2, true);
         prop(h, 'barrel_stove', 4.0, -0.4, 0, 1, 0.13, 0.35); prop(h, 'hanging_picture_frame_01', 0, -3.38, 0, 1.2, 1.7);
@@ -295,7 +306,7 @@ export function createBuildings(assets, world, scene) {
         emit(h, 0, 2.2, 0, 0xffb060, 9, 11, 'warm');
       },
       s => { // Schule
-        const h = house(g, s.lx, s.lz, s.ry, { w: 8, d: 6.6, wall: mats.brick, front: [{ x: 2.4, w: 1.1, door: true }, { x: -1.2, w: 2.6, y0: 0.9, y1: 2.1 }], sign: 'SCHULE', signX: 2.4, signW: 1.6, signBg: '#33402e', name: 'school' });
+        const h = house(g, s.lx, s.lz, s.ry, { w: 8, d: 6.6, kit: { front: ['win', 'win', 'door'], left: ['win', 'wall'] }, sign: 'SCHULE', signX: 2.67, signW: 1.6, signBg: '#33402e', name: 'school' });
         for (let r = 0; r < 2; r++) for (const x of [-2.4, -0.8, 0.8]) { prop(h, 'SchoolDesk_01', x, -0.4 + r * 1.5, Math.PI, 1, 0.13, [0.36, 0.28]); prop(h, 'SchoolChair_01', x, 0.25 + r * 1.5, Math.PI, 1, 0.13); }
         prop(h, 'WoodenTable_01', -0.8, -2.5, 0, 1, 0.13, [0.9, 0.33]);
         for (let i = 0; i < 5; i++) { const c = document.createElement('canvas'); c.width = 96; c.height = 72; const x = c.getContext('2d'); x.fillStyle = '#e4dcc8'; x.fillRect(0, 0, 96, 72); x.strokeStyle = '#3a5a2a'; x.lineWidth = 2; x.beginPath(); x.moveTo(0, 58); x.lineTo(96, 56 + i); x.stroke(); x.fillStyle = '#15151a'; x.beginPath(); x.moveTo(20 + i * 4, 56); x.quadraticCurveTo(46, 22 + i * 2, 78, 56); x.fill(); x.fillStyle = '#e8d060'; x.beginPath(); x.arc(22 + i * 4, 50, 3, 0, 7); x.fill(); x.fillStyle = '#15151a'; x.fillRect(84 - i * 3, 30, 3, 26); x.beginPath(); x.arc(85.5 - i * 3, 27, 4, 0, 7); x.fill();
@@ -304,14 +315,14 @@ export function createBuildings(assets, world, scene) {
         hide(h, -2.9, -2.4); item(h, 'tape', -0.6, 0.69, -2.5, 0.3, { tape: 'school' }); item(h, 'note', -1.3, 0.69, -2.45, -0.2, { note: 'school' }); item(h, 'battery', 0.8, 0.92, -0.4, 0.4); item(h, 'apple', -2.4, 0.92, 1.1);
       },
       s => { // Wohnhaus A
-        const h = house(g, s.lx, s.lz, s.ry, { w: 7, d: 6, wall: mats.brick, front: W1, right: [{ x: 0, w: 1.0 }], chimney: true, name: 'house' });
+        const h = house(g, s.lx, s.lz, s.ry, { w: 7, d: 6, kit: { front: ['door', 'win'], right: ['wall', 'win'] }, chimney: true, name: 'house' });
         prop(h, 'vintage_day_bed', -2.2, -2.4, 0, 1, 0.13, [1.0, 0.45]); prop(h, 'painted_wooden_cabinet', 2.5, -2.5, 0, 1, 0.13, [0.6, 0.3]); prop(h, 'WoodenTable_01', 1.6, 0.6, Math.PI / 2, 1, 0.13, [0.33, 0.9]); prop(h, 'painted_wooden_chair_01', 0.8, 0.6, -Math.PI / 2, 1, 0.13);
         prop(h, 'ornate_mirror_01', -0.4, -2.88, 0, 1.3, 1.6); prop(h, 'hanging_picture_frame_01', -3.38, 0, Math.PI / 2, 1, 1.7);
         hide(h, -2.2, -1.6); item(h, 'battery', 2.6, 1.32, -2.45, 0.2); item(h, 'note', 1.6, 0.69, 0.5, 1, { note: 'house' }); item(h, 'can', 2.5, 1.32, -2.5, 0.5); item(h, 'longlife', 1.6, 0.69, 1.0, 0.3);
         emit(h, 0, 2.2, 0, 0xffb060, 7, 10, 'warm');
       },
       s => { // Wohnhaus B
-        const h = house(g, s.lx, s.lz, s.ry, { w: 8, d: 6, wall: mats.plaster, front: [{ x: 1.8, w: 1.1, door: true }, { x: -1.6, w: 1.4, lit: true }], back: [{ x: 0, w: 1.2 }], name: 'house' });
+        const h = house(g, s.lx, s.lz, s.ry, { w: 8, d: 6, kit: { front: ['win', 'win', 'door'], back: ['wall', 'win', 'wall'] }, name: 'house' });
         prop(h, 'Sofa_01', -2.4, -2.4, 0, 1.1, 0.13, [0.85, 0.36]); prop(h, 'ArmChair_01', -3.2, -0.6, Math.PI / 2, 1, 0.13, 0.4); prop(h, 'wooden_bookshelf_worn', 0.6, -2.6, 0, 1, 0.13, [0.7, 0.3]); prop(h, 'electric_stove', 3.5, -2.4, 0, 1, 0.13, [0.26, 0.32]);
         prop(h, 'dining_table', 2.3, 0.2, Math.PI / 2, 0.7, 0.13, [0.5, 0.8]); prop(h, 'vintage_electric_kettle', 3.5, -2.4, 0, 0.8, 0.99); prop(h, 'hanging_picture_frame_01', -2.4, -2.88, 0, 1, 1.75);
         item(h, 'can', 2.3, 0.75, 0.2, 0.5); item(h, 'apple', 2.4, 0.75, 0.6); item(h, 'can', 0.6, 1.2, -2.6, 0.2);

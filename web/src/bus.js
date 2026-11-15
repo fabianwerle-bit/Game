@@ -112,7 +112,7 @@ export function createBus(scene, world, assets) {
   st.update = (dt, gas, brake, steerIn, driving, rain) => {
     if (driving) {
       const road = world.onRoad(st.x, st.z), vmax = st.flat ? 4.2 : road === 1 ? 15.5 : road > 0 ? 10.5 : 6.2;
-      if (st.fuel <= 0) gas = 0;
+      if (st.fuel <= 0 || st.dead) gas = 0;
       if (gas > 0 && st.v < vmax) st.v += gas * (st.v < 0 ? 7 : 3.4) * dt;
       if (brake > 0) { if (st.v > 0.4) st.v -= brake * 10 * dt; else if (st.v > -4) st.v -= brake * 2.6 * dt; }
       st.v -= st.v * (road ? 0.12 : 0.5) * dt + Math.sign(st.v) * 0.35 * dt;
@@ -133,7 +133,7 @@ export function createBus(scene, world, assets) {
     settle(dt);
     for (const w of wheels) { w.w.rotation.x += st.v * dt / 0.33; if (w.front) w.piv.rotation.y = st.steer; }
     sw.rotation.z = -st.steer * 4.2;
-    const on = st.lights ? 1 : 0;
+    const on = st.lights && !st.dead ? 1 : 0;
     head.intensity = on * (st.lightbar.visible ? 900 : 420); head.angle = st.lightbar.visible ? 0.72 : 0.5; head.distance = st.lightbar.visible ? 120 : 85; lampM.emissiveIntensity = on * 4; tailM.emissiveIntensity = on * 1.5 + (driving && brake > 0 ? 3 : 0);
     if (rain > 0.05 && driving) st.wipe += dt * (2.2 + rain * 2.4); 
     const a = 1.35 - (0.5 - 0.5 * Math.cos(st.wipe)) * 1.9 * (rain > 0.05 || (st.wipe % 6.283) > 0.1 ? 1 : 0);

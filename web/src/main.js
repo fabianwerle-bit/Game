@@ -9,6 +9,7 @@ import { createAudio } from './audio.js';
 import { createPost, createGrass } from './fx.js';
 import { createStalker, makeFigure } from './stalker.js';
 import { createDetails } from './details.js';
+import { Reflector } from 'three/addons/objects/Reflector.js';
 import { NOTES, WIND, WAKE, ENDING, ENDING_B, TAPES, PHONE, PHOTO, OMEN, objective } from './story.js';
 
 const $ = id => document.getElementById(id);
@@ -45,8 +46,9 @@ const ICON = {
   radio: '<rect x="3" y="9" width="18" height="10" rx="1"/><circle cx="8" cy="14" r="2.500"/><path d="M14 12.500h4M14 15.500h4M7 9l9-5"/>',
   planks: '<path d="M3 8h18v3H3zM3 13h18v3H3z"/><path d="M6 8v8M18 8v8"/>',
   tyre: '<circle cx="12" cy="12" r="8.500"/><circle cx="12" cy="12" r="3.500"/>',
+  carbatt: '<rect x="3" y="8" width="18" height="11"/><path d="M6 8V5.500h3V8M15 8V5.500h3V8M6 13h3M15 13h3M16.500 11.500v3"/>',
 };
-const NAME = { lamp: 'Licht', can: 'Konserve', longlife: 'Ration', apple: 'Apfel', gun: 'Pistole', notes: 'Notizen', key: 'Schlüssel', map: 'Karte', fuse: 'Sicherung', tape: 'Kassette', radio: 'Radio', planks: 'Bretter', tyre: 'Reifen' };
+const NAME = { lamp: 'Licht', can: 'Konserve', longlife: 'Ration', apple: 'Apfel', gun: 'Pistole', notes: 'Notizen', key: 'Schlüssel', map: 'Karte', fuse: 'Sicherung', tape: 'Kassette', radio: 'Radio', planks: 'Bretter', tyre: 'Reifen', carbatt: 'Batterie' };
 const HOUR = 30, SLEEP_FROM = 22, HUNT_FROM = 20.5, DAWN = 30;
 
 (async function boot() {
@@ -76,9 +78,12 @@ const HOUR = 30, SLEEP_FROM = 22, HUNT_FROM = 20.5, DAWN = 30;
   const chair = assets.M.wheelchair_01.clone(); chair.visible = false; scene.add(chair);
   const boom = assets.M.boombox.clone(); boom.scale.setScalar(0.7); boom.visible = false; scene.add(boom);
   const barMat = built.mats.planks;
+  // echte Spiegel: Hausspiegel (nur der nächste rendert) und Rückspiegel im Bus
+  const mirrors = (fx.mirrorObjs || []).map(o => { const r = new Reflector(new THREE.PlaneGeometry(0.3, 0.5), { textureWidth: 256, textureHeight: 448, clipBias: 0.003, color: 0x8a8f8c }); r.position.set(0, -0.045, 0.035); r.visible = false; o.add(r); return r; });
+  const rearMirror = new Reflector(new THREE.PlaneGeometry(0.175, 0.042), { textureWidth: 384, textureHeight: 96, clipBias: 0.003, color: 0x9a9f9c }); rearMirror.position.set(0, 1.76, 0.9605); rearMirror.rotation.y = Math.PI; rearMirror.visible = false; bus.group.add(rearMirror); bus.mirrorFig.visible = false;
 
   // --- Spielzustand ---
-  const fresh = () => ({ day: 1, hour: 8.5, hunger: 78, fuel: 46, inv: { apple: 0, can: 0, longlife: 0 }, ammo: 0, gun: false, armed: false, key: false, fuse: false, map: false, batt: 100, spare: 0, tapes: [], heard: [], tyres: 0, flat: false, flatDay: 0, planks: 0, boombox: 0, up: {}, locked: false, seen: {}, phone: {}, sleepAt: null, waiting: false,
+  const fresh = () => ({ day: 1, hour: 8.5, hunger: 78, fuel: 46, inv: { apple: 0, can: 0, longlife: 0 }, ammo: 0, gun: false, armed: false, key: false, fuse: false, map: false, batt: 100, spare: 0, tapes: [], heard: [], tyres: 0, flat: false, flatDay: 0, dead: false, carbatt: 0, radioOff: false, planks: 0, boombox: 0, up: {}, locked: false, seen: {}, phone: {}, sleepAt: null, waiting: false,
     notes: [], picked: [], doors: {}, wnote: 0, scares: {}, inMine: false, onIslet: false, bus: { ...fx.start.bus }, pl: { ...fx.start.pl }, mode: 'walk', lights: false, torch: false });
   let S = fresh();
   const pl = { x: 0, z: 0, y: 0, yaw: 0, pitch: 0, bob: 0, look: 0 };
@@ -93,7 +98,7 @@ const HOUR = 30, SLEEP_FROM = 22, HUNT_FROM = 20.5, DAWN = 30;
   };
   const refreshItems = () => {
     for (const it of items) it.obj.visible = visible(it); for (const id in fx.doors) S.doors[id] ? fx.doors[id].open() : fx.doors[id].close();
-    bus.wsNote.visible = !!S.wnote; fx.ferry.mat.map = S.day >= 3 ? fx.ferry.b : fx.ferry.a; fx.setPhotos(S.day); bus.lightbar.visible = !!S.up.light; bus.flat = S.flat; world.mine.on = !!S.inMine;
+    bus.wsNote.visible = !!S.wnote; fx.ferry.mat.map = S.day >= 3 ? fx.ferry.b : fx.ferry.a; fx.setPhotos(S.day); bus.lightbar.visible = !!S.up.light; bus.flat = S.flat; bus.dead = S.dead; world.mine.on = !!S.inMine;
   };
   const applyState = () => {
     bus.place(S.bus.x, S.bus.z, S.bus.h); bus.fuel = S.fuel; bus.lights = S.lights;
@@ -117,7 +122,7 @@ const HOUR = 30, SLEEP_FROM = 22, HUNT_FROM = 20.5, DAWN = 30;
     setTxt('obj', '→ ' + objective(S));
     const drive = mode === 'drive', inBus = drive || mode === 'rear';
     document.body.classList.toggle('drive', drive);
-    show('bGas', drive); show('bBrk', drive); show('bBack', drive && Math.abs(bus.v) < 0.5); show('bFire', mode !== 'hide' && S.gun && S.armed);
+    show('bGas', drive); show('bBrk', drive); show('bBack', drive && Math.abs(bus.v) < 0.5); show('bRadio', drive); $('bRadio').classList.toggle('on', !S.radioOff); show('bFire', mode !== 'hide' && S.gun && S.armed);
     gunVM.visible = (mode === 'walk' || inBus) && S.gun && S.armed;
     const slots = [['lamp', S.spare || '', drive ? bus.lights : S.torch, drive ? -1 : S.batt]];
     for (const k of ['can', 'longlife', 'apple']) if (S.inv[k]) slots.push([k, S.inv[k], false]);
@@ -128,6 +133,7 @@ const HOUR = 30, SLEEP_FROM = 22, HUNT_FROM = 20.5, DAWN = 30;
     if (S.planks) slots.push(['planks', S.planks, false]);
     if (S.boombox) slots.push(['radio', S.boombox, false]);
     if (S.tyres) slots.push(['tyre', S.tyres, false]);
+    if (S.carbatt) slots.push(['carbatt', S.carbatt, false]);
     if (S.tapes.length) slots.push(['tape', S.tapes.length - S.heard.length || '', false]);
     slots.push(['notes', S.notes.length || '', false]);
     const key = JSON.stringify(slots);
@@ -145,6 +151,7 @@ const HOUR = 30, SLEEP_FROM = 22, HUNT_FROM = 20.5, DAWN = 30;
     else if (k === 'fuse') say('Die Hauptsicherung. Schwer für so ein kleines Ding.', 3);
     else if (k === 'planks') say('Bretter. An einer Haustür kannst du sie von innen vornageln.', 4);
     else if (k === 'tyre') say('Ein Ersatzreifen. Am Bus kannst du ihn wechseln.', 3);
+    else if (k === 'carbatt') say('Eine Autobatterie. Schwer. Am Bus kannst du sie einbauen.', 3);
     else if (k === 'tape') say('Kassetten. Der Rekorder steht hinten im Bus auf der Küchenzeile.', 4);
     else if (k === 'radio') placeRadio();
     hud();
@@ -265,7 +272,7 @@ const HOUR = 30, SLEEP_FROM = 22, HUNT_FROM = 20.5, DAWN = 30;
       if (id === 'bed') sleep();
       else if (id === 'cook') { if (!S.inv.can) return say('Du hast keine Konserve zum Aufwärmen.', 3); if (S.hunger > 92) return say('Du hast keinen Hunger.', 2); S.inv.can--; S.hunger = Math.min(100, S.hunger + 40); audio.blip(520); say('Warmes Essen. Für einen Moment ist alles gut.', 4); hud(); }
       else if (id === 'todo') readNote('todo', NOTES.todo.t, NOTES.todo.x + (runs > 0 ? `\n\nPS: Du warst schon ${runs}-mal hier. Sieh im Bergwerk nach.` : ''));
-      else if (id === 'seat') { mode = 'drive'; pl.look = 0; pl.pitch = 0; hud(); if (bus.fuel <= 0) say('Der Tank ist leer.', 3); else if (S.flat) say('Ein Reifen ist platt. So kommst du kaum voran.', 4); else if (S.wnote) say('An der Scheibe klemmt ein Zettel.', 4); }
+      else if (id === 'seat') { mode = 'drive'; pl.look = 0; pl.pitch = 0; hud(); if (S.dead) say('Der Schlüssel dreht sich. Nichts. Die Batterie ist leer – in der Werkstatt an der Tankstelle oder in der Lagerhalle liegt eine.', 8); else if (bus.fuel <= 0) say('Der Tank ist leer.', 3); else if (S.flat) say('Ein Reifen ist platt. So kommst du kaum voran.', 4); else if (S.wnote) say('An der Scheibe klemmt ein Zettel.', 4); }
       else if (id === 'exit') exitBus();
       else if (id === 'lock') { S.locked = !S.locked; audio.click(); say(S.locked ? (S.up.lock ? 'Verriegelt. Der neue Riegel hält einiges aus.' : 'Verriegelt. Lange hält das Schloss nicht.') : 'Entriegelt.', 3); }
       else if (id === 'tape') playTape();
@@ -284,6 +291,7 @@ const HOUR = 30, SLEEP_FROM = 22, HUNT_FROM = 20.5, DAWN = 30;
       else if (ty === 'tape') { S.tapes.push(it.tape); say('Eine Kassette. Auf dem Etikett: deine Handschrift. Der Rekorder steht im Bus.', 5); }
       else if (ty === 'map') { S.map = true; say('Eine Inselkarte. Tippe sie im Inventar an.', 5); save(); }
       else if (ty === 'tyre') { S.tyres++; say('Ein Ersatzreifen.', 3); }
+      else if (ty === 'carbatt') { S.carbatt++; say('Eine Autobatterie. Falls der Bus einmal nicht anspringt.', 4); }
       else if (ty === 'lightbar') { S.up.light = 1; bus.lightbar.visible = true; say('Zusatzscheinwerfer – aufs Busdach geschraubt. Das Licht reicht jetzt weiter.', 5); }
       else if (ty === 'lockkit') { S.up.lock = 1; say('Ein schwerer Türriegel. Im Bus eingebaut hält er ihn länger auf.', 5); }
       else if (ty === 'canister') { S.up.tank = 1; bus.fuel = Math.min(130, bus.fuel + 20); say('Ein Reservekanister. Der Bus fasst jetzt mehr Sprit.', 5); }
@@ -310,6 +318,7 @@ const HOUR = 30, SLEEP_FROM = 22, HUNT_FROM = 20.5, DAWN = 30;
     else if (target.graves) readNote('graves', NOTES.graves.t, NOTES.graves.x);
     else if (target.grave) readNote('grave', NOTES.grave.t, NOTES.grave.x);
     else if (target.horn) { distract = { x: fx.horn.x, z: fx.horn.z, t: 30, horn: true }; hornT = 0; say('Die Hupe klemmt. Das hört die ganze Insel.', 4); stalker.heard(fx.horn.x, fx.horn.z); }
+    else if (target.carbatt) through(() => { S.dead = false; bus.dead = false; S.carbatt--; S.hour = Math.min(DAWN - 0.2, S.hour + 0.4); }, 'Die neue Batterie sitzt. Der Anlasser dreht wieder.', 2.4);
     else if (target.tyre) through(() => { S.flat = false; bus.flat = false; S.tyres--; S.hour = Math.min(DAWN - 0.2, S.hour + 0.5); }, 'Reifen gewechselt. Deine Hände sind schwarz.', 2.4);
     else if (target.bus) { mode = 'rear'; pl.look = Math.PI; pl.pitch = -0.1; audio.door(); hud(); if (!S.notes.includes('todo')) say('Dein Zuhause für die nächsten Tage. Am Schrank hängt ein Zettel.', 5); }
   }
@@ -339,6 +348,7 @@ const HOUR = 30, SLEEP_FROM = 22, HUNT_FROM = 20.5, DAWN = 30;
     // Er war da: Spuren hinterlassen
     const sn = Math.sin(bus.heading), cs = Math.cos(bus.heading);
     tracks.visible = S.day >= 3; tracks.position.set(bus.x, world.ground(bus.x, bus.z), bus.z); tracks.rotation.y = bus.heading;
+    if (S.day === 4 && !S.scares.dead) { S.scares.dead = 1; S.dead = true; } // jemand hat nachts das Licht angelassen
     chair.visible = S.day === 4; if (chair.visible) { const x = bus.x + sn * 5.2, z = bus.z + cs * 5.2; chair.position.set(x, world.ground(x, z), z); chair.rotation.y = bus.heading + Math.PI; }
     for (const d of fx.doorways) setBar(d, false); distract = null; boom.visible = false;
     refreshItems(); save(); hud(); $('fade').style.opacity = 0; busy = false;
@@ -348,7 +358,7 @@ const HOUR = 30, SLEEP_FROM = 22, HUNT_FROM = 20.5, DAWN = 30;
   function sleep() {
     if (busy) return;
     if (S.hour < SLEEP_FROM) return say(`Du bist noch nicht müde. (Schlafen ab ${SLEEP_FROM} Uhr)`, 3);
-    if (stalker.hunting && stalker.dist < 90) return say('Du kannst jetzt nicht schlafen. Er ist ganz nah. Häng ihn ab, versteck dich oder vertreib ihn.', 5);
+    if (hunting() && stalker.hunting && stalker.dist < 90) return say('Du kannst jetzt nicht schlafen. Er ist ganz nah. Häng ihn ab, versteck dich oder vertreib ihn.', 5);
     busy = true; $('fade').style.opacity = 1; bus.lights = false;
     // Er lernt: zweimal am selben Platz schlafen merkt er sich
     S.waiting = !!(S.sleepAt && Math.hypot(S.sleepAt.x - bus.x, S.sleepAt.z - bus.z) < 45); S.sleepAt = { x: bus.x, z: bus.z };
@@ -388,7 +398,7 @@ const HOUR = 30, SLEEP_FROM = 22, HUNT_FROM = 20.5, DAWN = 30;
     }, 2200);
   }
   $('bEnd').onclick = () => { localStorage.removeItem(SAVE); location.reload(); };
-  tap('bAct', act); tap('bFire', fire); tap('bBack', back);
+  tap('bAct', act); tap('bFire', fire); tap('bBack', back); tap('bRadio', () => { S.radioOff = !S.radioOff; audio.click(); hud(); });
 
   // --- Menü / Start ---
   const hasSave = !!localStorage.getItem(SAVE);
@@ -464,11 +474,11 @@ const HOUR = 30, SLEEP_FROM = 22, HUNT_FROM = 20.5, DAWN = 30;
         if (driving) camera.position.copy(bus.group.localToWorld(v3.set(0.42, 1.52, 0.47))); else camera.position.copy(bus.group.localToWorld(v3.set(-0.12, 1.4, -0.42)));
         e1.set(pl.pitch, Math.PI + pl.look, 0); camera.quaternion.copy(bus.group.quaternion).multiply(q1.setFromEuler(e1));
         pl.x = bus.x; pl.z = bus.z; pl.y = bus.y; indoor = true;
-        hear = driving && Math.abs(bus.v) > 1 ? 150 : driving && bus.fuel > 0 ? 30 : 0;
+        hear = driving && Math.abs(bus.v) > 1 ? 150 : driving && bus.fuel > 0 && !S.dead ? (S.radioOff ? 30 : 55) : 0;
         // Reifenpanne
         if (driving && Math.abs(bus.v) > 8) { driveT += dt; if (S.day >= 3 && !S.flat && S.flatDay !== S.day && driveT > 25 && Math.random() < dt * 0.012) { S.flat = true; bus.flat = true; S.flatDay = S.day; audio.pop(); shake = 0.8; say('Ein Knall. Ein Reifen ist geplatzt. In der Werkstatt an der Tankstelle liegen Ersatzreifen.', 8); hud(); } }
         // Gestalt im Rückspiegel
-        mirT -= dt; if (driving && S.day >= 3 && weather.lum < 0.5 && mirT < 0) { mirT = 45 + Math.random() * 50; bus.mirrorFig.visible = true; setTimeout(() => { bus.mirrorFig.visible = false; }, 2600); }
+        mirT -= dt; if (driving && S.day >= 3 && weather.lum < 0.5 && mirT < 0) { mirT = 45 + Math.random() * 50; const x = bus.x - Math.sin(bus.heading) * 11, z = bus.z - Math.cos(bus.heading) * 11; fig.position.set(x, world.ground(x, z) - 0.03, z); fig.rotation.y = bus.heading; fig.visible = true; figure.life = 2.8; figure.d0 = 0; }
       }
       if (shake > 0.01) { camera.position.x += (Math.random() - 0.5) * shake * 0.12; camera.position.y += (Math.random() - 0.5) * shake * 0.12; camera.rotation.z += (Math.random() - 0.5) * shake * 0.05; shake *= Math.pow(0.02, rdt); }
       if (S.hunger <= 0 && !busy) {
@@ -501,10 +511,10 @@ const HOUR = 30, SLEEP_FROM = 22, HUNT_FROM = 20.5, DAWN = 30;
         }
         if (!target && !S.inMine && Math.hypot(pl.x - bus.x, pl.z - bus.z) < 3.6) {
           const fxp = bus.x + Math.sin(bus.heading) * 2.4, fzp = bus.z + Math.cos(bus.heading) * 2.4;
-          target = S.wnote && Math.hypot(pl.x - fxp, pl.z - fzp) < 2.3 ? { wind: true } : S.flat && S.tyres > 0 ? { tyre: true } : { bus: true };
+          target = S.wnote && Math.hypot(pl.x - fxp, pl.z - fzp) < 2.3 ? { wind: true } : S.dead && S.carbatt > 0 ? { carbatt: true } : S.flat && S.tyres > 0 ? { tyre: true } : { bus: true };
         }
         const T = target || {};
-        label = T.item ? (T.item.type === 'note' ? 'Lesen' : 'Nehmen') : T.door ? 'Tür' : T.radio ? 'Funken' : T.wind ? 'Zettel lesen' : T.fusebox ? 'Sicherung nehmen' : T.mineIn ? 'Betreten' : T.mineOut ? 'Hinaus' : T.boat || T.boat2 ? 'Boot' : T.phone ? 'Abheben' : T.grave || T.graves ? 'Lesen' : T.horn ? 'Hupe' : T.photo || T.drawing ? 'Ansehen' : T.hide ? 'Verstecken' : T.bar ? (T.bar.bar ? 'Bretter ab' : 'Verrammeln') : T.tyre ? 'Reifen wechseln' : 'Einsteigen';
+        label = T.item ? (T.item.type === 'note' ? 'Lesen' : 'Nehmen') : T.door ? 'Tür' : T.radio ? 'Funken' : T.wind ? 'Zettel lesen' : T.fusebox ? 'Sicherung nehmen' : T.mineIn ? 'Betreten' : T.mineOut ? 'Hinaus' : T.boat || T.boat2 ? 'Boot' : T.phone ? 'Abheben' : T.grave || T.graves ? 'Lesen' : T.horn ? 'Hupe' : T.photo || T.drawing ? 'Ansehen' : T.hide ? 'Verstecken' : T.bar ? (T.bar.bar ? 'Bretter ab' : 'Verrammeln') : T.tyre ? 'Reifen wechseln' : T.carbatt ? 'Batterie tauschen' : 'Einsteigen';
         hint = T.item ? T.item.name : T.radio ? 'Funkgerät' : T.fusebox ? 'Sicherungskasten' : T.mineIn ? 'Stollen' : T.horn ? 'Abgedecktes Auto' : T.phone ? 'Das Telefon klingelt' : '';
         show('bAct', !!target);
       } else if (mode === 'hide') { label = 'Raus'; show('bAct', true); hint = 'versteckt'; }
@@ -567,6 +577,7 @@ const HOUR = 30, SLEEP_FROM = 22, HUNT_FROM = 20.5, DAWN = 30;
     const far = Math.max(110, Math.min(1000, weather.vis * 1.08)); if (Math.abs(far - camera.far) > 2) { camera.far = far; camera.updateProjectionMatrix(); scenery.sky.scale.setScalar(far * 0.9 / 1000); }
     scenery.update(t, camera); grass.update(t, camera, 0.25 + weather.storm * 0.6 + weather.rain * 0.2);
     details.update({ t, dt: rdt, day, px: pl.x, pz: pl.z, bus, playing });
+    { let bi = -1, bdm = 49; fx.mirrors.forEach((p, i) => { const d = p.distanceToSquared(camera.position); if (d < bdm) { bdm = d; bi = i; } }); mirrors.forEach((r, i) => { r.visible = i === bi && mode === 'walk'; }); rearMirror.visible = mode === 'drive' && qual >= 1; }
     fpsN++; fpsT += rdt; if (fpsT > 3) { const fps = fpsN / fpsT; fpsN = 0; fpsT = 0; if (fps < 27 && dynScale > 0.55) { dynScale -= 0.12; applyQual(); } else if (fps > 52 && dynScale < 1) { dynScale = Math.min(1, dynScale + 0.06); applyQual(); } }
 
     // --- Lichter ---
@@ -612,8 +623,8 @@ const HOUR = 30, SLEEP_FROM = 22, HUNT_FROM = 20.5, DAWN = 30;
     if (msgT > 0) { msgT -= rdt; if (msgT <= 0) $('msg').style.opacity = 0; }
     if (subQ.length || subT > 0) { subT -= rdt; if (subT <= 0) { const e = $('sub'); if (subQ.length) { e.textContent = subQ.shift(); e.style.opacity = 1; subT = subQ.gap || 3.6; } else { e.style.opacity = 0; subT = 0; } } }
     const hC = cave ? 50 : world.getHeight(camera.position.x, camera.position.z), inB = mode === 'drive' || mode === 'rear';
-    audio.update({ rain: cave ? 0 : weather.rain, storm: cave ? 0 : weather.storm, birds: mode === 'menu' || cave ? 0 : weather.birds, inBus: inB, indoor, speed: bus.v, gas: mode === 'drive' ? Math.max(inp.gas, k.KeyW ? 1 : 0) : 0, engine: mode === 'drive' && bus.fuel > 0, coast: Math.max(0, 1 - Math.max(0, hC) / 7), dread, dt: rdt, t, stalker: stalker.active ? stalker.dist : 1e9, stalkerCar: stalker.mode === 'drive', stalkerV: stalker.v });
-    audio.radio(mode === 'drive' && bus.fuel > 0 ? (S.day <= 2 ? 1 : 2) : (distract?.radio && Math.hypot(pl.x - distract.x, pl.z - distract.z) < 40 ? 1 : 0), near, rdt);
+    audio.update({ rain: cave ? 0 : weather.rain, storm: cave ? 0 : weather.storm, birds: mode === 'menu' || cave ? 0 : weather.birds, inBus: inB, indoor, speed: bus.v, gas: mode === 'drive' ? Math.max(inp.gas, k.KeyW ? 1 : 0) : 0, engine: mode === 'drive' && bus.fuel > 0 && !S.dead, coast: Math.max(0, 1 - Math.max(0, hC) / 7), dread, dt: rdt, t, stalker: stalker.active ? stalker.dist : 1e9, stalkerCar: stalker.mode === 'drive', stalkerV: stalker.v });
+    audio.radio(mode === 'drive' && bus.fuel > 0 && !S.dead && !S.radioOff ? (S.day <= 2 ? 1 : 2) : (distract?.radio && Math.hypot(pl.x - distract.x, pl.z - distract.z) < 40 ? 1 : 0), near, rdt);
     post.render(scene, camera);
   }
   window.__game = {

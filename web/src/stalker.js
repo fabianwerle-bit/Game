@@ -42,7 +42,7 @@ export function createStalker(scene, world, assets, park) {
      Rückgabe: null | 'caught' | 'ram' | 'out' | 'pound' | 'rip' | 'break' | 'lost' */
   st.update = (dt, c) => {
     st.t += dt; let ev = null;
-    if (!c.hunt) { if (st.mode !== 'parked') st.reset(); glowM.opacity = 0; st.dist = 1e9; st.active = false; return null; }
+    if (!c.hunt) { if (st.mode !== 'parked') st.reset(); glowM.opacity = 0; st.dist = 1e9; st.active = false; st.hunting = false; st.out = false; return null; }
     if (st.mode === 'parked') {
       if (st.gone) st.mode = 'fled';
       else { st.mode = 'drive'; st.tPath = 0; st.kx = c.px; st.kz = c.pz; st.knowT = 0; if (c.spawn) { st.x = c.spawn.x; st.z = c.spawn.z; st.h = c.spawn.h; st.home = { ...c.spawn }; } }

@@ -18,7 +18,9 @@ wird es schlimmer. Und nachts kommt jemand die Straße herunter.
   Telefonzelle, Bushaltestelle), Tankstelle mit Werkstatt, Jagdhütte, Leuchtturm, Bergwerk mit begehbarem Stollen,
   Sendemast, Schiffswrack, Camp, Nebeninsel (per Boot)
 - Hauptstraße mit Markierung, Leitpfosten, Strommasten, Wegweisern und Schildern; Querstraße und Waldwege
-- Camper-Bus: Wohnbereich (Bett, Küche, Riegel, Kassettenrekorder), Autoradio, Reifenpannen, Ausbauteile
+- Dorfhäuser außen aus einem gescannten Fassaden-Bausatz (echte Wand-, Fenster- und Türteile)
+- Camper-Bus: Wohnbereich (Bett, Küche, Riegel, Kassettenrekorder), Autoradio (abschaltbar), Reifenpanne und leere Batterie, Ausbauteile, spiegelnder Rückspiegel
+- Echte Spiegel in den Häusern
 - Uhr läuft durch die Nacht bis zum Morgen; Schlafen, sobald er dich verloren hat – oder verriegelt
 - Verfolger mit Wahrnehmung: sieht Licht, hört Motor, Schritte und Schüsse; sucht die letzte bekannte Stelle ab.
   Steht der Bus, steigt er aus, rennt zur Tür und reißt sie auf. Verstecken, Ablenken (Hupe, Kofferradio),
@@ -46,5 +48,6 @@ Im Browser testen: `cd web && npm install && npx vite`
 
 Alle Texturen, 3D-Scans (Möbel, Pistole, Requisiten, abgedecktes Auto) und der Himmel stammen von
 [Poly Haven](https://polyhaven.com) (CC0). Tannen, Farn und Gras sind aus Poly-Haven-Scans gebacken.
-Häuser und der Bus sind selbst modelliert und mit Fototexturen belegt (lizenzfreie Scans davon gibt es nicht).
+Die Dorfhäuser tragen außen gescannte Fassadenteile (Poly Haven `modular_urban_apartments_facade`); Dächer, Innenwände,
+die übrigen Gebäude und der Bus sind selbst modelliert und mit Fototexturen belegt (lizenzfreie Scans davon gibt es nicht).
 Ton wird komplett im Spiel synthetisiert.
