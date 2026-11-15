@@ -12,7 +12,7 @@ wird es schlimmer. Und nachts kommt jemand die Straße herunter.
 - **Im Bus hinten:** Bett (schlafen ab 22 Uhr), Küche (Konserve aufwärmen), Zettel, Fahrersitz, Tür – einfach hinsehen und Aktion drücken
 - Am PC (Browser): WASD, Maus, `E` Aktion, `F` Licht, `Q` Essen, `G` Pistole, Leertaste Feuer, `B` nach hinten, `J` Notizen, `M` Karte
 
-## Inhalt (v0.3)
+## Inhalt (v0.4)
 
 - Insel ohne Raster: Hafen (Start), Dorf Grauwik (Laden, Gasthaus, Kapelle mit Friedhof, Schule, Wohnhäuser,
   Telefonzelle, Bushaltestelle), Tankstelle mit Werkstatt, Jagdhütte, Leuchtturm, Bergwerk mit begehbarem Stollen,
@@ -28,6 +28,9 @@ wird es schlimmer. Und nachts kommt jemand die Straße herunter.
 - Inselkarte (findbar), Notizbuch, Kassetten, Telefon, Fotos, Spiegel, Vorzeichen am Morgen
 - Taschenlampe braucht Batterien
 - Kurze Sequenzen (Fähre legt ab, erste Sichtung), zwei Enden, Zähler für Durchläufe
+- Einstellungen (Zahnrad oben rechts): Empfindlichkeit, Knopfgröße, Schwierigkeit, Vibration, Grafik, Fotomodus, Erfolge, Statistik
+- Sechs versteckte Polaroids
+- Admin-/Cheat-Menü: fünfmal schnell auf die Tag-Anzeige oben links tippen, Code `1984`
 
 ## Aufbau
 
@@ -48,6 +51,7 @@ Im Browser testen: `cd web && npm install && npx vite`
 
 Alle Texturen, 3D-Scans (Möbel, Pistole, Requisiten, abgedecktes Auto) und der Himmel stammen von
 [Poly Haven](https://polyhaven.com) (CC0). Tannen, Farn und Gras sind aus Poly-Haven-Scans gebacken.
-Die Dorfhäuser tragen außen gescannte Fassadenteile (Poly Haven `modular_urban_apartments_facade`); Dächer, Innenwände,
-die übrigen Gebäude und der Bus sind selbst modelliert und mit Fototexturen belegt (lizenzfreie Scans davon gibt es nicht).
+Dorfhäuser, Kapelle, Hafenbüro, Lagerhalle, Tankstelle, Leuchtturm-Haus, Bergwerks-Schuppen und Masthütte tragen außen
+gescannte Fassadenteile (Poly Haven `modular_urban_apartments_facade` und `modular_factory_facade`); Dächer, Innenwände,
+Jagdhütte, Leuchtturm, Stollen und der Bus sind selbst modelliert und mit Fototexturen belegt (lizenzfreie Scans davon gibt es nicht).
 Ton wird komplett im Spiel synthetisiert.

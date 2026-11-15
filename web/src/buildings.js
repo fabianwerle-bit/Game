@@ -64,10 +64,11 @@ export function createBuildings(assets, world, scene) {
     fuse: () => grp(bm(new THREE.CylinderGeometry(0.02, 0.02, 0.09, 8), mats.glass, 0, 0.02, 0), bm(new THREE.CylinderGeometry(0.022, 0.022, 0.02, 8), mats.brass, 0, 0.065, 0), bm(new THREE.CylinderGeometry(0.022, 0.022, 0.02, 8), mats.brass, 0, -0.02, 0)),
     lightbar: () => grp(bm(new THREE.BoxGeometry(0.5, 0.06, 0.08), mats.dark, 0, 0.03, 0), bm(new THREE.CylinderGeometry(0.06, 0.06, 0.06, 10), mats.steel, -0.16, 0.09, 0), bm(new THREE.CylinderGeometry(0.06, 0.06, 0.06, 10), mats.steel, 0.16, 0.09, 0)),
     lockkit: () => grp(bm(new THREE.BoxGeometry(0.16, 0.05, 0.07), mats.steel, 0, 0.025, 0), bm(new THREE.CylinderGeometry(0.012, 0.012, 0.2, 6), mats.brass, 0, 0.06, 0)),
+    polaroid: () => { const k = grp(bm(new THREE.BoxGeometry(0.09, 0.004, 0.11), mats.white, 0, 0.002, 0), bm(new THREE.BoxGeometry(0.074, 0.002, 0.074), mats.dark, 0, 0.005, -0.012)); return k; },
     carbatt: () => grp(bm(new THREE.BoxGeometry(0.3, 0.2, 0.18), mats.dark, 0, 0.1, 0), bm(new THREE.CylinderGeometry(0.02, 0.02, 0.04, 6), mats.brass, -0.09, 0.22, 0), bm(new THREE.CylinderGeometry(0.02, 0.02, 0.04, 6), mats.steel, 0.09, 0.22, 0), bm(new THREE.BoxGeometry(0.31, 0.03, 0.19), mats.red, 0, 0.19, 0)),
     planks: () => grp(bm(new THREE.BoxGeometry(1.5, 0.04, 0.16), mats.planks, 0, 0.02, 0), bm(new THREE.BoxGeometry(1.5, 0.04, 0.16), mats.planks, 0.05, 0.06, 0.03), bm(new THREE.BoxGeometry(1.5, 0.04, 0.16), mats.planks, -0.04, 0.1, -0.02)),
   };
-  const ITEM = { can: ['russian_food_cans_01', 2.2, 'Konserven'], longlife: ['long_life_food', 1.2, 'Notration'], apple: ['food_apple_01', 2.0, 'Apfel'], fuel: ['metal_jerrycan_green', 1.0, 'Benzinkanister'], ammo: ['ammo_box', 1.3, 'Munition'], pistol: ['service_pistol', 1.3, 'Pistole'], key: [null, 1.6, 'Schlüssel'], note: [null, 1, 'Zettel'], battery: [null, 1.5, 'Batterien'], tape: [null, 1.5, 'Kassette'], map: [null, 1, 'Inselkarte'], fuse: [null, 1.6, 'Sicherung'], tyre: ['old_tyre', 1, 'Ersatzreifen'], lightbar: [null, 1, 'Zusatzscheinwerfer'], lockkit: [null, 1.3, 'Türriegel'], canister: ['metal_jerrycan_green', 1.15, 'Reservekanister'], planks: [null, 1, 'Bretter'], carbatt: [null, 1, 'Autobatterie'], boombox: ['boombox', 0.7, 'Kofferradio'] };
+  const ITEM = { can: ['russian_food_cans_01', 2.2, 'Konserven'], longlife: ['long_life_food', 1.2, 'Notration'], apple: ['food_apple_01', 2.0, 'Apfel'], fuel: ['metal_jerrycan_green', 1.0, 'Benzinkanister'], ammo: ['ammo_box', 1.3, 'Munition'], pistol: ['service_pistol', 1.3, 'Pistole'], key: [null, 1.6, 'Schlüssel'], note: [null, 1, 'Zettel'], battery: [null, 1.5, 'Batterien'], tape: [null, 1.5, 'Kassette'], map: [null, 1, 'Inselkarte'], fuse: [null, 1.6, 'Sicherung'], tyre: ['old_tyre', 1, 'Ersatzreifen'], lightbar: [null, 1, 'Zusatzscheinwerfer'], lockkit: [null, 1.3, 'Türriegel'], canister: ['metal_jerrycan_green', 1.15, 'Reservekanister'], planks: [null, 1, 'Bretter'], carbatt: [null, 1, 'Autobatterie'], polaroid: [null, 1.6, 'Polaroid'], boombox: ['boombox', 0.7, 'Kofferradio'] };
   const item = (g, type, x, y, z, ry = 0, extra = {}) => {
     let o;
     if (type === 'note') { o = new THREE.Mesh(new THREE.PlaneGeometry(0.21, 0.3), mats.paper); if (!extra.wall) o.rotation.x = -Math.PI / 2; const h = new THREE.Group(); h.add(o); o = h; }
@@ -309,6 +310,7 @@ export function createBuildings(assets, world, scene) {
           names.forEach((n, i) => { const gx2 = -3.9 + (i % 4) * 2.6, gz = -9.2 - Math.floor(i / 4) * 3; const st = texBox(0.7, 1.0, 0.16, mats.concrete, 1.2); st.rotation.z = (i % 3 - 1) * 0.04; add(h, st, gx2, 0.45, gz, true); const c = signTex(n, '#1a1a1a', '#8a8a86', 44); const pl2 = new THREE.Mesh(new THREE.PlaneGeometry(0.6, 0.12), new THREE.MeshStandardMaterial({ map: c, roughness: 0.9 })); add(h, pl2, gx2, 0.7, gz + 0.085); });
           const pit = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 2.1), new THREE.MeshBasicMaterial({ color: 0x000000 })); pit.rotation.x = -Math.PI / 2; add(h, pit, 5.2, 0.04, -10.5); add(h, texBox(1.3, 0.5, 2.2, mats.rock, 1.5), 6.6, 0.1, -10.5); const st2 = texBox(0.7, 1.0, 0.16, mats.concrete, 1.2); add(h, st2, 5.2, 0.45, -12, true);
           for (let x = -5.6; x <= 8.2; x += 2.3) for (const z of [-7.4, -14]) add(h, texBox(0.1, 1.0, 0.1, mats.planks), x, 0.5, z); for (const z of [-7.4, -14]) add(h, texBox(13.8, 0.08, 0.05, mats.planks), 1.3, 0.8, z);
+          item(h, 'polaroid', 5.2, 0.5, -11.75, 0.2);
           const w = toWorld(h, 0.5, -9.5); fx.graves = new THREE.Vector3(w.x, world.pois.village.y + 0.8, w.z); const w2 = toWorld(h, 5.2, -11.6); fx.grave = new THREE.Vector3(w2.x, world.pois.village.y + 0.6, w2.z);
         }
       },
@@ -327,7 +329,7 @@ export function createBuildings(assets, world, scene) {
         for (let i = 0; i < 5; i++) { const c = document.createElement('canvas'); c.width = 96; c.height = 72; const x = c.getContext('2d'); x.fillStyle = '#e4dcc8'; x.fillRect(0, 0, 96, 72); x.strokeStyle = '#3a5a2a'; x.lineWidth = 2; x.beginPath(); x.moveTo(0, 58); x.lineTo(96, 56 + i); x.stroke(); x.fillStyle = '#15151a'; x.beginPath(); x.moveTo(20 + i * 4, 56); x.quadraticCurveTo(46, 22 + i * 2, 78, 56); x.fill(); x.fillStyle = '#e8d060'; x.beginPath(); x.arc(22 + i * 4, 50, 3, 0, 7); x.fill(); x.fillStyle = '#15151a'; x.fillRect(84 - i * 3, 30, 3, 26); x.beginPath(); x.arc(85.5 - i * 3, 27, 4, 0, 7); x.fill();
           const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; const d = new THREE.Mesh(new THREE.PlaneGeometry(0.48, 0.36), new THREE.MeshStandardMaterial({ map: t, roughness: 0.9 })); d.rotation.z = (i % 2 ? 1 : -1) * 0.07; add(h, d, -3.2 + i * 1.25, 1.55 + (i % 2) * 0.2, -3.17); }
         { const w = toWorld(h, -0.7, -2.6); fx.drawings.push(new THREE.Vector3(w.x, world.pois.village.y + 1.6, w.z)); }
-        hide(h, -2.9, -2.4); item(h, 'tape', -0.6, 0.69, -2.5, 0.3, { tape: 'school' }); item(h, 'note', -1.3, 0.69, -2.45, -0.2, { note: 'school' }); item(h, 'battery', 0.8, 0.92, -0.4, 0.4); item(h, 'apple', -2.4, 0.92, 1.1);
+        hide(h, -2.9, -2.4); item(h, 'polaroid', 2.6, 0.15, -2.6, 0.4); item(h, 'tape', -0.6, 0.69, -2.5, 0.3, { tape: 'school' }); item(h, 'note', -1.3, 0.69, -2.45, -0.2, { note: 'school' }); item(h, 'battery', 0.8, 0.92, -0.4, 0.4); item(h, 'apple', -2.4, 0.92, 1.1);
       },
       s => { // Wohnhaus A
         const h = house(g, s.lx, s.lz, s.ry, { w: 7, d: 6, kit: { front: ['door', 'win'], right: ['wall', 'win'] }, chimney: true, name: 'house' });
@@ -384,7 +386,7 @@ export function createBuildings(assets, world, scene) {
     const em = new THREE.Mesh(new THREE.CircleGeometry(0.28, 10), new THREE.MeshBasicMaterial({ color: 0xff6a1a })); em.rotation.x = -Math.PI / 2; add(g, em, 0, 0.18, -2);
     fx.embers = { light: emit(g, 0, 0.7, -2, 0xff7a30, 8, 12, 'fire'), mesh: em };
     prop(g, 'plastic_crate_03', 1.6, -3.2, 0.5); prop(g, 'tree_stump_01', -1.8, -1.2, 0, 0.8, 0, 0.3);
-    item(g, 'apple', 1.6, 0.36, -3.2); item(g, 'can', -4.2, 0.0, -1.4, 0.4); item(g, 'note', -3.2, 0.03, -1.6, 0.4, { note: 'camp' }); item(g, 'can', 5.0, 0.0, -2.9, 2); item(g, 'ammo', 3.4, 0.0, -3.4, 1); item(g, 'canister', 5.6, 0.0, -3.6, 0.8);
+    item(g, 'apple', 1.6, 0.36, -3.2); item(g, 'can', -4.2, 0.0, -1.4, 0.4); item(g, 'note', -3.2, 0.03, -1.6, 0.4, { note: 'camp' }); item(g, 'can', 5.0, 0.0, -2.9, 2); item(g, 'ammo', 3.4, 0.0, -3.4, 1); item(g, 'canister', 5.6, 0.0, -3.6, 0.8); item(g, 'polaroid', -4.6, 0.02, -2.4, 0.3);
   }
 
   const signMat = (t, fg, bg, size) => new THREE.MeshStandardMaterial({ map: signTex(t, fg, bg, size), roughness: 0.7, side: THREE.DoubleSide });
@@ -405,7 +407,7 @@ export function createBuildings(assets, world, scene) {
     for (const y of [3, 6.4]) { const s = 1.6 - y * 0.1; for (const [x, z, rr] of [[0, -s, 0], [0, s, 0], [-s, 0, 1], [s, 0, 1]]) { const bmm = texBox(rr ? 0.16 : s * 2, 0.16, rr ? s * 2 : 0.16, mats.planks); add(g, bmm, fx0 + x, y, fz0 + z); } }
     add(g, texBox(1.8, 0.25, 1.8, mats.planks), fx0, 10, fz0); const whl = new THREE.Mesh(new THREE.TorusGeometry(1.0, 0.07, 6, 20), mats.steel); add(g, whl, fx0, 11.2, fz0); add(g, texBox(0.1, 1.3, 0.1, mats.steel), fx0, 10.7, fz0);
     const sh = house(g, -8.5, 0.5, Math.PI / 2, { w: 4.4, d: 3.6, kit: { fac: 1, front: [['fwall', 1.4], ['fdoor', 3]], left: ['fwall'], right: ['fwall'], back: ['fwall', 'fwall'] }, roof: mats.iron, pitch: 0.3, name: 'mineshed' });
-    prop(sh, 'wooden_crate_01', -1.3, -1.1, 0.2, 1, 0.13, [0.42, 0.22]); item(sh, 'battery', -1.3, 0.49, -1.1, 0.4); item(sh, 'lockkit', -1.0, 0.49, -1.2, 1.2); item(sh, 'can', 1.4, 0.15, -1.2, 1); item(sh, 'note', 1.2, 0.15, 0.6, 0.6, { note: 'minesign' });
+    prop(sh, 'wooden_crate_01', -1.3, -1.1, 0.2, 1, 0.13, [0.42, 0.22]); item(sh, 'polaroid', 1.5, 0.15, 1.0, 0.7); item(sh, 'battery', -1.3, 0.49, -1.1, 0.4); item(sh, 'lockkit', -1.0, 0.49, -1.2, 1.2); item(sh, 'can', 1.4, 0.15, -1.2, 1); item(sh, 'note', 1.2, 0.15, 0.6, 0.6, { note: 'minesign' });
     prop(g, 'Barrel_01', 3.4, -5.6, 0, 1, 0, 0.35); prop(g, 'old_tyre', -3.6, -5.5, 0, 1, 0.3);
     const wp = toWorld(g, 0, -6.9); fx.mineIn = new THREE.Vector3(wp.x, world.pois.mine.y + 1.3, wp.z);
   }
@@ -445,7 +447,7 @@ export function createBuildings(assets, world, scene) {
     const top = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 6), new THREE.MeshStandardMaterial({ color: 0x400000, emissive: 0xff1a10, emissiveIntensity: 3 })); add(g, top, 0, Ht + 0.3, mz); fx.flicker.push({ mat: top.material, base: 4, group: 'mast' });
     { const w = toWorld(g, 0, mz); world.addCircle(w.x, w.z, 1.8); fx.mast = new THREE.Vector3(w.x, world.pois.mast.y, w.z); }
     const h = house(g, 4.6, 0.5, -Math.PI / 2, { w: 3.6, d: 3.2, kit: { fac: 1, front: [['fdoor', 3], ['fwall', 0.6]], left: ['fwall'], right: ['fwall'], back: ['fwall'] }, roof: mats.iron, pitch: 0.25, floor: mats.concrete, name: 'masthut' });
-    prop(h, 'wooden_crate_01', -1.0, -0.9, 0.2, 1, 0.13, [0.42, 0.22]); item(h, 'tape', -1.0, 0.49, -0.9, 0.4, { tape: 'mast' }); item(h, 'note', 0.9, 0.15, -0.9, 0.5, { note: 'mast' }); item(h, 'battery', 1.1, 0.15, 0.4, 0.2); item(h, 'longlife', -1.1, 0.15, 0.6, 1);
+    prop(h, 'wooden_crate_01', -1.0, -0.9, 0.2, 1, 0.13, [0.42, 0.22]); item(h, 'polaroid', 0.2, 0.15, -1.1, 1.1); item(h, 'tape', -1.0, 0.49, -0.9, 0.4, { tape: 'mast' }); item(h, 'note', 0.9, 0.15, -0.9, 0.5, { note: 'mast' }); item(h, 'battery', 1.1, 0.15, 0.4, 0.2); item(h, 'longlife', -1.1, 0.15, 0.6, 1);
   }
   // ================= WRACK am Nordoststrand =================
   {
@@ -454,7 +456,7 @@ export function createBuildings(assets, world, scene) {
     { const w = toWorld(g, 0, -8); world.addBox(w.x, w.z, 10.5, 3.0, g.userData.ry + 1.25); }
     const at = (lx, lz) => { const w = toWorld(g, lx, lz); return [w.x, w.z]; };
     { const [x, z] = at(4, 6); const c = M.wooden_crate_01.clone(); c.position.set(x, world.getHeight(x, z), z); c.scale.setScalar(1.2); scene.add(c); world.addCircle(x, z, 0.4); item(null, 'note', x, 0.43, z, 0.3, { note: 'wreck' }); }
-    { const [x, z] = at(5.2, 6.6); item(null, 'tape', x, 0.02, z, 1, { tape: 'wreck' }); } { const [x, z] = at(2.2, 7.4); item(null, 'ammo', x, 0, z, 0.4); } { const [x, z] = at(-3, 6); item(null, 'planks', x, 0.02, z, 0.8); } { const [x, z] = at(-5, 8); item(null, 'battery', x, 0.02, z, 0.1); }
+    { const [x, z] = at(5.2, 6.6); item(null, 'tape', x, 0.02, z, 1, { tape: 'wreck' }); } { const [x, z] = at(1, 9); item(null, 'polaroid', x, 0.02, z, 2); } { const [x, z] = at(2.2, 7.4); item(null, 'ammo', x, 0, z, 0.4); } { const [x, z] = at(-3, 6); item(null, 'planks', x, 0.02, z, 0.8); } { const [x, z] = at(-5, 8); item(null, 'battery', x, 0.02, z, 0.1); }
     fx.wreck = new THREE.Vector3(s.x, s.y, s.z);
   }
   // ================= NEBENINSEL =================

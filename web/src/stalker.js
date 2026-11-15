@@ -65,14 +65,14 @@ export function createStalker(scene, world, assets, park) {
       const stop = (knows && !c.inBus && dCar < 24) || (knows && busStill && dCar < 9) || (!knows && (dK < 22 || st.path.length < 2)) || (knows && !c.inBus && st.path.length < 2);
       let tx = st.kx, tz = st.kz, dirt = false;
       if (st.path.length) { const n = world.nodes[st.path[Math.min(1, st.path.length - 1)]]; tx = n.x; tz = n.z; dirt = n.dirt; }
-      const vmax = stop ? 0 : (dirt ? 9.4 : 13.6) + (c.day >= 5 ? 0.8 : 0);
+      const vmax = stop ? 0 : ((dirt ? 9.4 : 13.6) + (c.day >= 5 ? 0.8 : 0)) * (c.sp || 1);
       st.v += Math.max(-16 * dt, Math.min(5 * dt, vmax - st.v));
       if (st.path.length || c.inBus) st.h += ang(Math.atan2(tx - st.x, tz - st.z) - st.h) * Math.min(1, dt * 3.5);
       st.x += Math.sin(st.h) * st.v * dt; st.z += Math.cos(st.h) * st.v * dt;
       if (c.inBus && dCar < 5.6 && st.cool <= 0 && Math.abs(c.busV) >= 3.5) { ev = 'ram'; st.cool = 2.6; st.v *= 0.3; }
       if (stop && st.v < 0.5) { getOut(); if (knows && busStill) { st.mode = 'door'; ev = 'out'; } else if (knows) st.mode = 'walk'; else { st.mode = 'search'; st.timer = 22 + Math.random() * 10; st.sx = st.kx; st.sz = st.kz; } }
     } else if (st.mode === 'walk') {
-      const dd = manTo(st.kx, st.kz, 3.45 + (c.day >= 5 ? 0.45 : 0), dt);
+      const dd = manTo(st.kx, st.kz, (3.45 + (c.day >= 5 ? 0.45 : 0)) * (c.sp || 1), dt);
       if (!c.inBus && !c.hidden && dMan < 1.15) ev = 'caught';
       if (c.hidden && dMan < 1.3 && st.sawT < 4) ev = 'caught';
       if (c.inBus && knows && dMan < 14 && Math.abs(c.busV) < 3.5) st.mode = 'door';
@@ -83,15 +83,15 @@ export function createStalker(scene, world, assets, park) {
     } else if (st.mode === 'door') {   // rennt zur Bustür
       const sn = Math.sin(c.bus.h), cs = Math.cos(c.bus.h), side = c.rear ? -1.15 : 1.15, fz = c.rear ? -0.4 : 0.7;
       const tx = c.bus.x + cs * side + sn * fz, tz = c.bus.z - sn * side + cs * fz;
-      const dd = manTo(tx, tz, 6.4, dt);
+      const dd = manTo(tx, tz, 6.4 * (c.sp || 1), dt);
       if (!c.inBus) st.mode = 'walk';
       else if (Math.abs(c.busV) > 4 && dMan > 5) st.mode = 'walk';
       else if (dd < 0.7) { st.mode = 'rip'; st.timer = c.locked ? c.lockHold : 0; st.pound = 0; st.ripped = false; }
     } else if (st.mode === 'rip') {     // hämmert, reißt die Tür auf
       man.userData.walk(st.t * 2, 0.5);
-      if (!c.inBus || Math.hypot(c.bus.x - st.mx, c.bus.z - st.mz) > 4.2) { st.mode = 'walk'; }
+      if (!c.inBus || Math.abs(c.busV) > 3 || Math.hypot(c.bus.x - st.mx, c.bus.z - st.mz) > 2.8) { st.mode = 'walk'; }
       else if (st.timer > 0) { st.timer -= dt; st.pound -= dt; if (st.pound <= 0) { st.pound = 1.1; ev = 'pound'; } }
-      else if (!st.ripped) { st.ripped = true; st.timer = -0.001; st.grace = st.graceLen || 2.6; st.graceLen = 0; ev = 'rip'; }
+      else if (!st.ripped) { st.ripped = true; st.timer = -0.001; st.grace = (st.graceLen || 3.2) * (c.gr || 1); st.graceLen = 0; ev = 'rip'; }
       else { st.grace -= dt; if (st.grace <= 0) ev = 'caught'; }
     } else if (st.mode === 'search') {  // sucht die letzte bekannte Stelle ab
       st.timer -= dt; const a = st.t * 0.35; manTo(st.sx + Math.cos(a) * 7, st.sz + Math.sin(a * 1.3) * 7, 2.2, dt);

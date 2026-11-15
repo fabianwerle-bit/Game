@@ -10,6 +10,7 @@ import { createPost, createGrass } from './fx.js';
 import { createStalker, makeFigure } from './stalker.js';
 import { createDetails } from './details.js';
 import { Reflector } from 'three/addons/objects/Reflector.js';
+import { createAdmin } from './admin.js';
 import { NOTES, WIND, WAKE, ENDING, ENDING_B, TAPES, PHONE, PHOTO, OMEN, objective } from './story.js';
 
 const $ = id => document.getElementById(id);
@@ -83,11 +84,12 @@ const HOUR = 30, SLEEP_FROM = 22, HUNT_FROM = 20.5, DAWN = 30;
   const rearMirror = new Reflector(new THREE.PlaneGeometry(0.175, 0.042), { textureWidth: 384, textureHeight: 96, clipBias: 0.003, color: 0x9a9f9c }); rearMirror.position.set(0, 1.76, 0.9605); rearMirror.rotation.y = Math.PI; rearMirror.visible = false; bus.group.add(rearMirror); bus.mirrorFig.visible = false;
 
   // --- Spielzustand ---
-  const fresh = () => ({ day: 1, hour: 8.5, hunger: 78, fuel: 46, inv: { apple: 0, can: 0, longlife: 0 }, ammo: 0, gun: false, armed: false, key: false, fuse: false, map: false, batt: 100, spare: 0, tapes: [], heard: [], tyres: 0, flat: false, flatDay: 0, dead: false, carbatt: 0, radioOff: false, planks: 0, boombox: 0, up: {}, locked: false, seen: {}, phone: {}, sleepAt: null, waiting: false,
+  const fresh = () => ({ day: 1, hour: 8.5, hunger: 78, fuel: 46, inv: { apple: 0, can: 0, longlife: 0 }, ammo: 0, gun: false, armed: false, key: false, fuse: false, map: false, batt: 100, spare: 0, tapes: [], heard: [], tyres: 0, flat: false, flatDay: 0, dead: false, carbatt: 0, radioOff: false, planks: 0, boombox: 0, polaroids: 0, stats: { km: 0, shots: 0, close: 0 }, up: {}, locked: false, seen: {}, phone: {}, sleepAt: null, waiting: false,
     notes: [], picked: [], doors: {}, wnote: 0, scares: {}, inMine: false, onIslet: false, bus: { ...fx.start.bus }, pl: { ...fx.start.pl }, mode: 'walk', lights: false, torch: false });
   let S = fresh();
   const pl = { x: 0, z: 0, y: 0, yaw: 0, pitch: 0, bob: 0, look: 0 };
   let mode = 'menu', busy = false, paused = false, tSave = 0, tHud = 0, target = null, dread = 0, shake = 0, fireCd = 0, flashT = 0, lastZone = null, endCam = null;
+  let admin = null, C = {}, flyH = 0, photoPrev = null, lastDist = 0;
   let hideSpot = null, distract = null, blackout = 0, falseT = 80, mirT = 40, ringT = 0, hornT = 0, driveT = 0, cineS = null, subQ = [], subT = 0, lastHunt = false;
   const cap = () => S.up.tank ? 130 : 100;
   const visible = it => !S.picked.includes(it.id) && (!it.req || it.req(S));
@@ -122,7 +124,7 @@ const HOUR = 30, SLEEP_FROM = 22, HUNT_FROM = 20.5, DAWN = 30;
     setTxt('obj', '→ ' + objective(S));
     const drive = mode === 'drive', inBus = drive || mode === 'rear';
     document.body.classList.toggle('drive', drive);
-    show('bGas', drive); show('bBrk', drive); show('bBack', drive && Math.abs(bus.v) < 0.5); show('bRadio', drive); $('bRadio').classList.toggle('on', !S.radioOff); show('bFire', mode !== 'hide' && S.gun && S.armed);
+    show('bSet', mode !== 'menu' && mode !== 'end' && mode !== 'photo'); show('bGas', drive); show('bBrk', drive); show('bBack', drive && Math.abs(bus.v) < 0.5); show('bRadio', drive); $('bRadio').classList.toggle('on', !S.radioOff); show('bFire', mode !== 'hide' && S.gun && S.armed);
     gunVM.visible = (mode === 'walk' || inBus) && S.gun && S.armed;
     const slots = [['lamp', S.spare || '', drive ? bus.lights : S.torch, drive ? -1 : S.batt]];
     for (const k of ['can', 'longlife', 'apple']) if (S.inv[k]) slots.push([k, S.inv[k], false]);
@@ -185,6 +187,7 @@ const HOUR = 30, SLEEP_FROM = 22, HUNT_FROM = 20.5, DAWN = 30;
     x.font = '15px "Segoe Script","Bradley Hand",cursive'; x.fillStyle = '#2a2632'; x.fillText('N', W - 60, 58); x.beginPath(); x.moveTo(W - 60, 100); x.lineTo(W - 60, 66); x.lineTo(W - 66, 78); x.moveTo(W - 60, 66); x.lineTo(W - 54, 78); x.stroke();
     x.textAlign = 'left'; x.font = 'italic 26px "Segoe Script","Bradley Hand",cursive'; x.fillText('Insel Grauwik', 34, 52); x.font = '13px sans-serif'; x.globalAlpha = 0.6; x.fillText('▢ Bus    ▲ du    – – – Waldweg', 36, Hh - 26); x.globalAlpha = 1;
     if (!S.inMine) { const [bx, by] = T(bus.x, bus.z); x.strokeStyle = '#7a1c16'; x.lineWidth = 2.5; x.strokeRect(bx - 6, by - 6, 12, 12);
+      if (C.showStalker && stalker.active) { const [sx2, sy2] = T(stalker.out ? stalker.mx : stalker.x, stalker.out ? stalker.mz : stalker.z); x.fillStyle = '#000'; x.beginPath(); x.arc(sx2, sy2, 7, 0, 7); x.fill(); x.fillText('Er', sx2 + 10, sy2 + 5); }
       const [qx, qy] = T(pl.x, pl.z), a = mode === 'walk' || mode === 'hide' ? pl.yaw : bus.heading + Math.PI; x.fillStyle = '#7a1c16'; x.save(); x.translate(qx, qy); x.rotate(-a); x.beginPath(); x.moveTo(0, -11); x.lineTo(7, 8); x.lineTo(-7, 8); x.closePath(); x.fill(); x.restore(); }
     show('map', true);
   }
@@ -208,7 +211,7 @@ const HOUR = 30, SLEEP_FROM = 22, HUNT_FROM = 20.5, DAWN = 30;
     for (let i = 0; i < 14; i++) { const y = Math.random() * h, hh = 4 + Math.random() * h * 0.06; fcx.drawImage(fc, 0, y, w, hh, (Math.random() - 0.5) * w * 0.08, y, w, hh); }
     for (let i = 0; i < 1200; i++) { fcx.fillStyle = `rgba(0,0,0,${Math.random() * 0.6})`; fcx.fillRect(Math.random() * w, Math.random() * h, 2 + Math.random() * 4, 2); }
   };
-  const scare = (face, vol = 1) => { audio.sting(vol); post.u.uPulse.value = 1; shake = 0.9; if (face) { drawFace(); fc.style.display = 'block'; setTimeout(() => { fc.style.display = 'none'; }, 480); } };
+  const scare = (face, vol = 1) => { admin?.vib(face ? 250 : 120); audio.sting(vol); post.u.uPulse.value = 1; shake = 0.9; if (face) { drawFace(); fc.style.display = 'block'; setTimeout(() => { fc.style.display = 'none'; }, 480); } };
   const figAt = (dist, behind, life, vol) => { camera.getWorldDirection(v3); const s = behind ? -1 : 1, x = pl.x + v3.x * dist * s, z = pl.z + v3.z * dist * s; fig.position.set(x, pl.y - 0.03, z); fig.rotation.y = Math.atan2(pl.x - x, pl.z - z); fig.visible = true; figure.life = life; figure.d0 = 0; if (vol) scare(false, vol); };
   const roomScare = () => figAt(2.6, false, 0.42, 1);
 
@@ -218,12 +221,13 @@ const HOUR = 30, SLEEP_FROM = 22, HUNT_FROM = 20.5, DAWN = 30;
   const stick = $('stick'), knob = stick.firstElementChild;
   canvas.addEventListener('pointerdown', e => {
     if (mode === 'menu' || mode === 'cine') return; audio.init();
+    if (mode === 'photo' && e.clientX > innerWidth - 90 && e.clientY < 80) { mode = photoPrev; document.body.classList.remove('photo'); paused = false; hud(); return; }
     if (e.pointerType === 'mouse') { canvas.requestPointerLock?.(); return; }
     if (e.clientX < innerWidth * 0.42 && stickId === null && mode !== 'rear' && mode !== 'hide') { stickId = e.pointerId; sx = e.clientX; sy = e.clientY; stick.style.display = 'block'; stick.style.left = sx + 'px'; stick.style.top = sy + 'px'; knob.style.transform = ''; }
     else if (lookId === null) { lookId = e.pointerId; lx = e.clientX; ly = e.clientY; }
     canvas.setPointerCapture(e.pointerId);
   });
-  const look = (dx, dy) => { const k = 0.0042; if (mode === 'drive') pl.look = Math.max(-2.3, Math.min(2.3, pl.look - dx * k)); else if (mode === 'rear') pl.look -= dx * k; else pl.yaw -= dx * k; pl.pitch = Math.max(-1.35, Math.min(1.35, pl.pitch - dy * k)); };
+  const look = (dx, dy) => { const k = 0.0042 * (admin?.set.sens || 1); if (mode === 'drive') pl.look = Math.max(-2.3, Math.min(2.3, pl.look - dx * k)); else if (mode === 'rear') pl.look -= dx * k; else pl.yaw -= dx * k; pl.pitch = Math.max(-1.35, Math.min(1.35, pl.pitch - dy * k)); };
   canvas.addEventListener('pointermove', e => {
     if (e.pointerId === stickId) { let dx = e.clientX - sx, dy = e.clientY - sy; const l = Math.hypot(dx, dy), R = 55; if (l > R) { dx *= R / l; dy *= R / l; } inp.mx = dx / R; inp.mz = dy / R; knob.style.transform = `translate(${dx}px,${dy}px)`; }
     else if (e.pointerId === lookId) { look(e.clientX - lx, e.clientY - ly); lx = e.clientX; ly = e.clientY; }
@@ -246,7 +250,7 @@ const HOUR = 30, SLEEP_FROM = 22, HUNT_FROM = 20.5, DAWN = 30;
   };
   const readWind = () => { const d = S.wnote; S.wnote = 0; bus.wsNote.visible = false; readNote('w' + d, 'Zettel an der Windschutzscheibe', WIND[Math.min(6, d)]); if (d >= 5) { weather.flash = 1; audio.thunder(0.3); } };
   const placeRadio = () => { if (mode !== 'walk' || !S.boombox) return say('Stell es draußen ab.', 2); S.boombox--; camera.getWorldDirection(v3); const x = pl.x + v3.x * 0.9, z = pl.z + v3.z * 0.9; boom.position.set(x, world.ground(x, z), z); boom.rotation.y = pl.yaw; boom.visible = true; distract = { x, z, t: 50, radio: true }; say('Das Radio plärrt los. Das hört man weit.', 4); };
-  const enterMine = () => through(() => { S.inMine = true; world.mine.on = true; pl.x = fx.mineSpawn.x; pl.z = fx.mineSpawn.z; pl.y = world.mine.y; pl.yaw = -Math.PI / 2; pl.pitch = 0; if (!S.seen.mineIn) { S.seen.mineIn = 1; } }, 'Kalte Luft. Es riecht nach nassem Stein und Öl.');
+  const enterMine = () => through(() => { admin.award('mine'); S.inMine = true; world.mine.on = true; pl.x = fx.mineSpawn.x; pl.z = fx.mineSpawn.z; pl.y = world.mine.y; pl.yaw = -Math.PI / 2; pl.pitch = 0; if (!S.seen.mineIn) { S.seen.mineIn = 1; } }, 'Kalte Luft. Es riecht nach nassem Stein und Öl.');
   const leaveMine = () => through(() => { S.inMine = false; world.mine.on = false; const p = world.pois.mine, f = p.face; pl.x = fx.mineIn.x + Math.sin(f) * 2.2; pl.z = fx.mineIn.z + Math.cos(f) * 2.2; pl.y = world.ground(pl.x, pl.z); pl.yaw = f + Math.PI; });
   const boatMenu = () => choose('Ein Ruderboot mit Außenborder. Der Tank ist leer.', [
     ['Zur Nebeninsel', () => boatGo('islet')], ['Aufs offene Meer', () => boatGo('sea')], ['Bleiben', null]]);
@@ -255,10 +259,10 @@ const HOUR = 30, SLEEP_FROM = 22, HUNT_FROM = 20.5, DAWN = 30;
     if (bus.fuel < 15) return say('Im Bus ist zu wenig Sprit, um etwas abzuzapfen.', 4);
     bus.fuel -= 15; audio.door();
     if (where === 'sea') through(() => { S.hour = Math.min(DAWN - 0.2, S.hour + 1.5); S.hunger = Math.max(5, S.hunger - 6); }, 'Du fährst eine Stunde geradeaus. Dann taucht ein Steg aus dem Nebel auf. Derselbe Steg.', 3);
-    else through(() => { S.onIslet = true; pl.x = fx.isletSpawn.x; pl.z = fx.isletSpawn.z; pl.y = world.ground(pl.x, pl.z); pl.yaw = fx.isletSpawn.yaw; S.hour = Math.min(DAWN - 0.2, S.hour + 0.4); S.seen.islet = 1; }, 'Eine winzige Insel. Eine Ruine. Hier draußen ist es still.', 2.6);
+    else through(() => { admin.award('islet'); S.onIslet = true; pl.x = fx.isletSpawn.x; pl.z = fx.isletSpawn.z; pl.y = world.ground(pl.x, pl.z); pl.yaw = fx.isletSpawn.yaw; S.hour = Math.min(DAWN - 0.2, S.hour + 0.4); S.seen.islet = 1; }, 'Eine winzige Insel. Eine Ruine. Hier draußen ist es still.', 2.6);
   };
   const boatBack = () => through(() => { S.onIslet = false; const p = hbW(0, -55); pl.x = p.x; pl.z = p.z; pl.y = world.ground(p.x, p.z); pl.yaw = world.pois.harbor.face + Math.PI; S.hour = Math.min(DAWN - 0.2, S.hour + 0.4); }, 'Der Steg. Der Bus steht noch da.', 2.6);
-  const playTape = () => { const id = S.tapes.find(t => !S.heard.includes(t)) || S.tapes[S.tapes.length - 1]; if (!id) return say('Du hast keine Kassette.', 3); if (!S.heard.includes(id)) S.heard.push(id); audio.click(); audio.hiss(TAPES[id].length * 3.6 + 1); subs(TAPES[id]); hud(); };
+  const playTape = () => { const id = S.tapes.find(t => !S.heard.includes(t)) || S.tapes[S.tapes.length - 1]; if (!id) return say('Du hast keine Kassette.', 3); if (!S.heard.includes(id)) S.heard.push(id); if (S.heard.length >= 5) admin.award('tapes'); audio.click(); audio.hiss(TAPES[id].length * 3.6 + 1); subs(TAPES[id]); hud(); };
   function act() {
     if (busy || paused || mode === 'cine') return;
     if (mode === 'hide') { mode = 'walk'; hideSpot = null; hud(); return; }
@@ -289,7 +293,8 @@ const HOUR = 30, SLEEP_FROM = 22, HUNT_FROM = 20.5, DAWN = 30;
       else if (ty === 'key') { S.key = true; say('Der Schlüssel zum Leuchtturm.', 4); setTimeout(roomScare, 900); save(); }
       else if (ty === 'battery') { if (S.batt < 45) S.batt = 100; else S.spare++; say('Batterien für die Taschenlampe.', 3); }
       else if (ty === 'tape') { S.tapes.push(it.tape); say('Eine Kassette. Auf dem Etikett: deine Handschrift. Der Rekorder steht im Bus.', 5); }
-      else if (ty === 'map') { S.map = true; say('Eine Inselkarte. Tippe sie im Inventar an.', 5); save(); }
+      else if (ty === 'map') { S.map = true; say('Eine Inselkarte. Tippe sie im Inventar an.', 5); admin.award('map'); save(); }
+      else if (ty === 'polaroid') { S.polaroids++; say(`Ein Polaroid. Ein Stück Strand, ein Stück Bus. ${S.polaroids} von 6.` + (S.polaroids === 6 ? ' Zusammen zeigen sie den Hafen – und dich, wie du ankommst. Von oben fotografiert.' : ''), 6); if (S.polaroids >= 6) admin.award('polaroids'); }
       else if (ty === 'tyre') { S.tyres++; say('Ein Ersatzreifen.', 3); }
       else if (ty === 'carbatt') { S.carbatt++; say('Eine Autobatterie. Falls der Bus einmal nicht anspringt.', 4); }
       else if (ty === 'lightbar') { S.up.light = 1; bus.lightbar.visible = true; say('Zusatzscheinwerfer – aufs Busdach geschraubt. Das Licht reicht jetzt weiter.', 5); }
@@ -334,14 +339,15 @@ const HOUR = 30, SLEEP_FROM = 22, HUNT_FROM = 20.5, DAWN = 30;
     if (!(mode === 'walk' || mode === 'drive' || mode === 'rear') || !S.gun || !S.armed || fireCd > 0 || busy || paused) return;
     fireCd = 0.45;
     if (S.ammo <= 0) { audio.click(); return say('Leer.', 1.5); }
-    S.ammo--; audio.shot(); flashT = 0.07; pl.pitch = Math.min(1.3, pl.pitch + 0.05); shake = Math.max(shake, 0.25); $('flash').style.opacity = 0.25; setTimeout(() => { $('flash').style.opacity = 0; }, 50);
+    if (!C.infAmmo) S.ammo--; S.stats.shots++; admin.vib(40); audio.shot(); flashT = 0.07; pl.pitch = Math.min(1.3, pl.pitch + 0.05); shake = Math.max(shake, 0.25); $('flash').style.opacity = 0.25; setTimeout(() => { $('flash').style.opacity = 0; }, 50);
     camera.getWorldDirection(v3); stalker.heard(pl.x, pl.z);
-    if (stalker.shot(camera.position, v3)) { audio.scream(); say('Er taumelt zurück in den Nebel. Für heute Nacht.', 5); }
+    if (stalker.shot(camera.position, v3)) { admin.award('shot'); audio.scream(); say('Er taumelt zurück in den Nebel. Für heute Nacht.', 5); }
     else if (S.inMine && !S.fuse) { v4.copy(fx.fusebox).sub(camera.position); const d = v4.length(); if (d < 14 && v4.normalize().dot(v3) > 0.985) { hud(); return ending(ENDING_B, 'b'); } }
     else if (fig.visible) { const dx = fig.position.x - camera.position.x, dz = fig.position.z - camera.position.z, d = Math.hypot(dx, dz); if ((dx * v3.x + dz * v3.z) / d > 0.995) fig.visible = false; }
     hud();
   }
   function wake(slept) {
+    if (S.day >= 2) admin.award('night');
     S.day++; S.hour = slept ? 7.5 : 6.2; S.hunger = Math.max(8, S.hunger - (slept ? 18 : 26)); S.wnote = S.day; figure.t = 25; fig.visible = false; stalker.reset(); stalker.man.visible = false; S.locked = false; details.resetDay();
     if (slept) { mode = 'rear'; pl.look = 0; pl.pitch = 0; }
     items.forEach(it => { if (it.type === 'apple' && S.picked.includes(it.id) && Math.random() < Math.max(0, 0.6 - S.day * 0.12)) S.picked.splice(S.picked.indexOf(it.id), 1); });
@@ -376,23 +382,23 @@ const HOUR = 30, SLEEP_FROM = 22, HUNT_FROM = 20.5, DAWN = 30;
       }, 2400);
     } else { if (threat) { audio.knock(1.2); audio.knock(1.6); audio.knock(2.0); } setTimeout(() => wake(true), 2800); }
   }
-  function die() { if (busy) return; busy = true; scare(true, 1.3); audio.scream(); setTimeout(() => { show('dead', true); }, 900); }
+  function die() { if (busy) return; if (C.god) { stalker.mode = 'fled'; stalker.gone = true; stalker.man.visible = false; say('(Admin: unverwundbar)', 2); return; } busy = true; admin.vib([200, 80, 300]); scare(true, 1.3); audio.scream(); setTimeout(() => { show('dead', true); }, 900); }
   $('bRetry').onclick = () => { try { S = Object.assign(fresh(), JSON.parse(localStorage.getItem(SAVE))); } catch { S = fresh(); } if (S.hour >= HUNT_FROM) S.hour = HUNT_FROM - 1.5; applyState(); show('dead', false); busy = false; hud(); say('Du schreckst hoch. Derselbe Tag. Wieder.', 5); };
   function ending(lines, kind) {
-    if (busy) return; busy = true; audio.sting(0.5); $('fade').style.opacity = 1;
+    if (busy) return; busy = true; S.statDay = S.day; audio.sting(0.5); $('fade').style.opacity = 1;
     setTimeout(() => {
       mode = 'end'; show('end', true); $('hud').style.display = 'none'; $('inv').style.display = 'none'; show('bAct', false); show('bFire', false); S.inMine = false; world.mine.on = false;
       let i = 0; const p = $('endT');
       const next = () => {
         if (i < lines.length) { p.style.opacity = 0; setTimeout(() => { p.textContent = lines[i++]; p.style.opacity = 1; }, 700); setTimeout(next, 5200); return; }
-        runs++; localStorage.setItem('la_runs', runs); fx.tally(runs);
+        runs++; localStorage.setItem('la_runs', runs); fx.tally(runs); admin.award(kind === 'a' ? 'endA' : 'endB');
         const n = world.roads[0].pts, k = 250, a = n[k], b = n[(k + 9) % n.length], c = n[(k + 10) % n.length];
         bus.place(b.x, b.z, Math.atan2(c.x - b.x, c.z - b.z)); bus.lights = true; S.day = kind === 'a' ? 5 : 1; S.hour = kind === 'a' ? 22.6 : 9; stalker.reset(); stalker.car.visible = false; fig.visible = false;
         endCam = { x: a.x, z: a.z, tx: b.x, tz: b.z, t: 0 };
         $('end').style.background = 'transparent'; $('fade').style.opacity = 0; p.style.opacity = 0;
         setTimeout(() => { p.textContent = kind === 'a' ? 'Tag 1.\nDiesmal hältst du ihn auf,\nbevor er den Leuchtturm erreicht.' : 'Tag 1.\nJemand anderes.\nNicht mehr du.'; p.style.opacity = 1; }, 2500);
         setTimeout(() => { $('fade').style.opacity = 1; }, 10000);
-        setTimeout(() => { $('end').style.background = '#000'; p.textContent = `LETZTE AUSFAHRT\n\n${kind === 'a' ? 'Ende A · Der Kreis' : 'Ende B · Die Fähre'}\nDurchlauf ${runs}`; $('bEnd').style.display = ''; }, 12000);
+        setTimeout(() => { $('end').style.background = '#000'; p.textContent = `LETZTE AUSFAHRT\n\n${kind === 'a' ? 'Ende A · Der Kreis' : 'Ende B · Die Fähre'}\nDurchlauf ${runs} · Tag ${S.statDay || '?'}\n${S.stats.km.toFixed(1)} km · ${S.stats.shots} Schüsse · ${S.stats.close}× an der Tür`; $('bEnd').style.display = ''; }, 12000);
       };
       next();
     }, 2200);
@@ -400,6 +406,14 @@ const HOUR = 30, SLEEP_FROM = 22, HUNT_FROM = 20.5, DAWN = 30;
   $('bEnd').onclick = () => { localStorage.removeItem(SAVE); location.reload(); };
   tap('bAct', act); tap('bFire', fire); tap('bBack', back); tap('bRadio', () => { S.radioOff = !S.radioOff; audio.click(); hud(); });
 
+  // --- Einstellungen, Erfolge, Admin-Menü ---
+  const gotoPlace = (k) => { const p = placePos(k); S.inMine = false; world.mine.on = false; S.onIslet = k === 'islet'; const f = p.face || 0; let x = p.x + Math.sin(f) * 6, z = p.z + Math.cos(f) * 6; if (k === 'islet') { x = fx.isletSpawn.x; z = fx.isletSpawn.z; } pl.x = x; pl.z = z; pl.y = world.ground(x, z); pl.yaw = f; pl.pitch = 0; flyH = 0; mode = 'walk'; hud(); };
+  admin = createAdmin({ SAVE, S: () => S, setS: o => { Object.assign(S, o); refreshItems(); hud(); }, bus, pl, world, stalker, places: PLACES, toast: t => say(t, 5), hud, pause: v => { paused = v; },
+    goto: gotoPlace, scare: f => scare(f), roomScare: () => roomScare(), ending: k => ending(k === 'a' ? ENDING : ENDING_B, k), qualName: () => QUAL[qual][0], nextQual: () => { dynScale = 1; qual = (qual + 1) % 3; localStorage.setItem('la_q', qual); applyQual(); },
+    summon: () => { const n = world.nodes, i = world.nearestNode(pl.x, pl.z); let b = i, bd = 1e9; n.forEach((q, k) => { const d = Math.abs(Math.hypot(q.x - pl.x, q.z - pl.z) - 70); if (d < bd) { bd = d; b = k; } }); stalker.spawnNext = { x: n[b].x, z: n[b].z, h: 0 }; stalker.reset(); lastHunt = false; },
+    allNotes: () => { for (const k in NOTES) if (!S.notes.includes(k)) S.notes.push(k); hud(); }, resetRuns: () => { runs = 0; localStorage.setItem('la_runs', 0); fx.tally(0); },
+    photo: () => { photoPrev = mode; mode = 'photo'; paused = false; document.body.classList.add('photo'); } });
+  C = admin.C;
   // --- Menü / Start ---
   const hasSave = !!localStorage.getItem(SAVE);
   $('load').style.display = 'none'; $('btns').style.display = 'block';
@@ -431,12 +445,16 @@ const HOUR = 30, SLEEP_FROM = 22, HUNT_FROM = 20.5, DAWN = 30;
 
   function frame() {
     requestAnimationFrame(frame);
-    const rdt = Math.min(0.05, clock.getDelta()), dt = paused || mode === 'cine' ? 0 : rdt; t += rdt;
+    const rdt = Math.min(0.05, clock.getDelta()), dt = paused || mode === 'cine' || mode === 'photo' ? 0 : rdt; t += rdt;
     const k = inp.keys;
     let mx = inp.mx + (k.KeyD ? 1 : 0) - (k.KeyA ? 1 : 0), mz = inp.mz + (k.KeyS ? 1 : 0) - (k.KeyW ? 1 : 0);
     let indoor = false, moving = 0, zone = null, hear = 0;
     const playing = mode === 'walk' || mode === 'drive' || mode === 'rear' || mode === 'hide';
     if (mode === 'menu') { menuCam(); bus.update(dt, 0, 0, 0, false, 0); }
+    else if (mode === 'photo') { // freie Kamera, Welt steht
+      const l = Math.hypot(mx, mz) || 1, f = 9 * rdt / Math.max(1, l); camera.rotation.set(pl.pitch, pl.yaw, 0); camera.getWorldDirection(v3);
+      camera.position.addScaledVector(v3, -mz * f); camera.position.x += Math.cos(pl.yaw) * mx * f; camera.position.z -= Math.sin(pl.yaw) * mx * f; bus.update(0, 0, 0, 0, false, weather.rain);
+    }
     else if (mode === 'cine') {
       const c = cineS; c.t += rdt; c.camFn(c.t, Math.min(1, c.t / c.dur)); bus.update(0, 0, 0, 0, false, weather.rain);
       if (c.t >= c.dur) { mode = c.prev; cineS = null; document.body.classList.remove('cine'); c.done && c.done(); hud(); }
@@ -444,21 +462,24 @@ const HOUR = 30, SLEEP_FROM = 22, HUNT_FROM = 20.5, DAWN = 30;
       bus.update(dt, 0, 0, 0, false, 1);
       if (endCam) { endCam.t += rdt; const f = Math.min(0.55, endCam.t * 0.03); camera.position.set(endCam.x + (endCam.tx - endCam.x) * f, world.ground(endCam.x, endCam.z) + 1.15, endCam.z + (endCam.tz - endCam.z) * f); camera.lookAt(bus.x, bus.y + 1.2, bus.z); }
     } else {
-      S.hour += dt / HOUR;
-      S.hunger = Math.max(0, S.hunger - dt * (100 / (HOUR * 17)));
+      if (!C.freeze) S.hour += dt / HOUR * C.ts;
+      if (!C.noHunger) S.hunger = Math.max(0, S.hunger - dt * (100 / (HOUR * 17)) * admin.diff().hun * C.ts);
+      if (C.infBatt) S.batt = 100;
+      S.stats.km += Math.max(0, bus.dist - lastDist) / 1000; lastDist = bus.dist;
       fireCd -= dt;
       if (S.hour >= DAWN && !busy) { busy = true; $('fade').style.opacity = 1; setTimeout(() => wake(false), 1800); }
       if (mode === 'walk') {
         const l = Math.hypot(mx, mz); if (l > 1) { mx /= l; mz /= l; }
-        const sneak = l < 0.62 && !k.ShiftLeft, sp = (k.ShiftLeft ? 6 : sneak ? 3.0 : 4.1) * (S.hunger < 15 ? 0.6 : 1), sn = Math.sin(pl.yaw), cs = Math.cos(pl.yaw), mm = sneak && l > 0 ? 1 / Math.max(l, 0.3) : 1;
+        const sneak = l < 0.62 && !k.ShiftLeft, sp = (k.ShiftLeft ? 6 : sneak ? 3.0 : 4.1) * (S.hunger < 15 ? 0.6 : 1) * (C.fast ? 2.6 : 1) * (C.fly ? 2 : 1), sn = Math.sin(pl.yaw), cs = Math.cos(pl.yaw), mm = sneak && l > 0 ? 1 / Math.max(l, 0.3) : 1;
         const p = { x: pl.x + (mx * cs + mz * sn) * mm * sp * dt, z: pl.z + (-mx * sn + mz * cs) * mm * sp * dt };
-        world.collide(p, 0.32);
+        if (!C.noclip && !C.fly) world.collide(p, 0.32);
         const gh = world.ground(p.x, p.z), cur = world.ground(pl.x, pl.z);
-        if ((S.inMine || gh > 0.22) && gh - cur < 0.9) { moving = Math.hypot(p.x - pl.x, p.z - pl.z) / Math.max(dt, 1e-4); pl.x = p.x; pl.z = p.z; }
+        if (C.fly) flyH = Math.max(0, flyH + (-mz) * Math.sin(pl.pitch) * sp * dt); else flyH = 0;
+        if (C.noclip || C.fly || ((S.inMine || gh > 0.22) && gh - cur < 0.9)) { moving = Math.hypot(p.x - pl.x, p.z - pl.z) / Math.max(dt, 1e-4); pl.x = p.x; pl.z = p.z; }
         pl.y += (world.ground(pl.x, pl.z) - pl.y) * Math.min(1, dt * 14);
         if (moving > 0.5) { pl.bob += dt * moving * 1.9; stepAcc += dt * moving; if (stepAcc > 1.9) { stepAcc = 0; if (!sneak) audio.step(world.wet.value > 0.3); } }
         hear = moving > 3.4 ? 26 : moving > 0.5 ? 8 : 0;
-        camera.position.set(pl.x, pl.y + 1.68 + Math.sin(pl.bob * 2) * 0.035 * Math.min(1, moving / 3), pl.z);
+        camera.position.set(pl.x, pl.y + 1.68 + flyH + Math.sin(pl.bob * 2) * 0.035 * Math.min(1, moving / 3), pl.z);
         camera.rotation.set(pl.pitch, pl.yaw, Math.sin(pl.bob) * 0.004);
         bus.update(dt, 0, 0, 0, false, weather.rain);
         zone = S.inMine ? { name: 'mine' } : world.indoor(pl.x, pl.z); indoor = !!zone;
@@ -528,7 +549,7 @@ const HOUR = 30, SLEEP_FROM = 22, HUNT_FROM = 20.5, DAWN = 30;
       setTxt('bAct', label); setTxt('hint', hint);
 
       // --- Verfolger ---
-      const hunt = hunting() && !busy;
+      const hunt = hunting() && !busy && !C.stalkerOff;
       if (hunt && !lastHunt) { // Beginn der Jagd
         let spawn = null;
         if (S.waiting) { let bn = -1, bd = 1e9; world.nodes.forEach((n, i) => { const d = Math.abs(Math.hypot(n.x - bus.x, n.z - bus.z) - 48); if (d < bd) { bd = d; bn = i; } }); const n = world.nodes[bn]; spawn = { x: n.x, z: n.z, h: Math.atan2(bus.x - n.x, bus.z - n.z) }; say('Scheinwerfer. Ganz nah. Er wusste, wo du schläfst.', 6); S.waiting = false; }
@@ -538,15 +559,15 @@ const HOUR = 30, SLEEP_FROM = 22, HUNT_FROM = 20.5, DAWN = 30;
       }
       lastHunt = hunt;
       if (distract) { distract.t -= dt; if (distract.t <= 0) { distract = null; } else if (distract.horn) { hornT -= dt; if (hornT <= 0) { hornT = 1.4; if (Math.hypot(pl.x - fx.horn.x, pl.z - fx.horn.z) < 160) audio.horn(); } } }
-      const ev = stalker.update(dt, { px: pl.x, pz: pl.z, inBus: mode === 'drive' || mode === 'rear', busV: bus.v, bus: { x: bus.x, z: bus.z, h: bus.heading }, rear: mode === 'rear', hunt, day: S.day, hear, lit: mode === 'walk' && S.torch, hidden: mode === 'hide', locked: S.locked, lockHold: S.up.lock ? 22 : 8, spawn: stalker.spawnNext, distract, bars: fx.doorways.filter(d => d.bar) });
+      const ev = stalker.update(C.stalkerFreeze ? 0 : dt, { sp: admin.diff().sp, gr: admin.diff().gr, px: pl.x, pz: pl.z, inBus: mode === 'drive' || mode === 'rear', busV: bus.v, bus: { x: bus.x, z: bus.z, h: bus.heading }, rear: mode === 'rear', hunt, day: S.day, hear, lit: mode === 'walk' && S.torch, hidden: mode === 'hide', locked: S.locked, lockHold: S.up.lock ? 22 : 8, spawn: stalker.spawnNext, distract, bars: fx.doorways.filter(d => d.bar) });
       if (hunt) stalker.spawnNext = null;
       if (ev === 'caught') die();
-      else if (ev === 'ram') { audio.thud(); shake = 1; bus.v = Math.min(17, bus.v + 2.5); post.u.uPulse.value = 0.6; }
+      else if (ev === 'ram') { admin.vib(180); audio.thud(); shake = 1; bus.v = Math.min(17, bus.v + 2.5); post.u.uPulse.value = 0.6; }
       else if (ev === 'out') { audio.sting(0.5); say('Er hält. Die Fahrertür geht auf. Er rennt.', 3); }
       else if (ev === 'pound') { audio.knock(); audio.knock(0.25); shake = Math.max(shake, 0.35); if (S.locked && (mode === 'rear' || mode === 'drive')) say('Er rüttelt an der Tür. Der Riegel hält – noch.', 2); }
-      else if (ev === 'rip') { audio.rip(); shake = 1.2; post.u.uPulse.value = 1; S.locked = false; say('ER REISST DIE TÜR AUF!', 2.5); }
+      else if (ev === 'rip') { S.stats.close++; admin.vib([120, 60, 260]); audio.rip(); shake = 1.2; post.u.uPulse.value = 1; S.locked = false; say('ER REISST DIE TÜR AUF!', 2.5); }
       else if (ev === 'break') { const b = stalker.breakAt, d = fx.doorways.find(d => d.bar && Math.hypot(d.x - b.x, d.z - b.z) < 0.5); if (d) setBar(d, false); audio.crash(); shake = 0.8; say('Die Bretter splittern.', 3); }
-      else if (ev === 'lost' && playing) say('Es wird still. Er hat dich verloren – für den Moment.', 5);
+      else if (ev === 'lost' && playing) { if (mode === 'hide') admin.award('hide'); say('Es wird still. Er hat dich verloren – für den Moment.', 5); }
 
       // --- Schreckmomente ---
       const zn = zone?.name || null;
@@ -578,6 +599,7 @@ const HOUR = 30, SLEEP_FROM = 22, HUNT_FROM = 20.5, DAWN = 30;
     scenery.update(t, camera); grass.update(t, camera, 0.25 + weather.storm * 0.6 + weather.rain * 0.2);
     details.update({ t, dt: rdt, day, px: pl.x, pz: pl.z, bus, playing });
     { let bi = -1, bdm = 49; fx.mirrors.forEach((p, i) => { const d = p.distanceToSquared(camera.position); if (d < bdm) { bdm = d; bi = i; } }); mirrors.forEach((r, i) => { r.visible = i === bi && mode === 'walk'; }); rearMirror.visible = mode === 'drive' && qual >= 1; }
+    if (C.fps || C.showStalker) { const e = $('fps'); e.style.display = 'block'; if (fpsT > 0.4 || !e.textContent) e.textContent = (C.fps ? `${Math.round(fpsN / Math.max(0.01, fpsT))} B/s · x ${pl.x.toFixed(0)} z ${pl.z.toFixed(0)} · ${mode}` : '') + (C.showStalker ? ` · Er: ${stalker.mode}${stalker.dist < 1e8 ? ' ' + Math.round(stalker.dist) + ' m' : ''}` : ''); } else if ($('fps').style.display !== 'none') $('fps').style.display = 'none';
     fpsN++; fpsT += rdt; if (fpsT > 3) { const fps = fpsN / fpsT; fpsN = 0; fpsT = 0; if (fps < 27 && dynScale > 0.55) { dynScale -= 0.12; applyQual(); } else if (fps > 52 && dynScale < 1) { dynScale = Math.min(1, dynScale + 0.06); applyQual(); } }
 
     // --- Lichter ---
