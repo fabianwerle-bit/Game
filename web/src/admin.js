@@ -2,7 +2,7 @@
 const $ = id => document.getElementById(id);
 export const ACH = {
   night: 'Die erste Nacht mit ihm überstanden', shot: 'Ihn mit einem Schuss vertrieben', hide: 'Versteckt geblieben, während er suchte', map: 'Die Inselkarte gefunden',
-  mine: 'In den Stollen gestiegen', islet: 'Die Nebeninsel erreicht', tapes: 'Alle fünf Kassetten gehört', polaroids: 'Alle sechs Polaroids gefunden', endA: 'Ende A · Der Kreis', endB: 'Ende B · Die Fähre',
+  mine: 'In den Stollen gestiegen', islet: 'Die Nebeninsel erreicht', tapes: 'Alle fünf Kassetten gehört', polaroids: 'Alle sechs Polaroids gefunden', endA: 'Ende A · Der Kreis', endB: 'Ende B · Die Fähre', endC: 'Ende C · Der Aufpasser (Neues Spiel Plus)',
 };
 const CODE = '1984';
 

@@ -29,7 +29,8 @@ wird es schlimmer. Und nachts kommt jemand die Straße herunter.
 - Taschenlampe braucht Batterien
 - Kurze Sequenzen (Fähre legt ab, erste Sichtung), zwei Enden, Zähler für Durchläufe
 - Einstellungen (Zahnrad oben rechts): Empfindlichkeit, Knopfgröße, Schwierigkeit, Vibration, Grafik, Fotomodus, Erfolge, Statistik
-- Sechs versteckte Polaroids
+- Sechs versteckte Polaroids, automatische Skizzen im Notizbuch
+- Neues Spiel Plus nach dem ersten Ende: als Verfolger den Camper aufhalten (drittes Ende)
 - Admin-/Cheat-Menü: fünfmal schnell auf die Tag-Anzeige oben links tippen, Code `1984`
 
 ## Aufbau

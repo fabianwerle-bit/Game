@@ -84,7 +84,7 @@ const HOUR = 30, SLEEP_FROM = 22, HUNT_FROM = 20.5, DAWN = 30;
   const rearMirror = new Reflector(new THREE.PlaneGeometry(0.175, 0.042), { textureWidth: 384, textureHeight: 96, clipBias: 0.003, color: 0x9a9f9c }); rearMirror.position.set(0, 1.76, 0.9605); rearMirror.rotation.y = Math.PI; rearMirror.visible = false; bus.group.add(rearMirror); bus.mirrorFig.visible = false;
 
   // --- Spielzustand ---
-  const fresh = () => ({ day: 1, hour: 8.5, hunger: 78, fuel: 46, inv: { apple: 0, can: 0, longlife: 0 }, ammo: 0, gun: false, armed: false, key: false, fuse: false, map: false, batt: 100, spare: 0, tapes: [], heard: [], tyres: 0, flat: false, flatDay: 0, dead: false, carbatt: 0, radioOff: false, planks: 0, boombox: 0, polaroids: 0, stats: { km: 0, shots: 0, close: 0 }, up: {}, locked: false, seen: {}, phone: {}, sleepAt: null, waiting: false,
+  const fresh = () => ({ day: 1, hour: 8.5, hunger: 78, fuel: 46, inv: { apple: 0, can: 0, longlife: 0 }, ammo: 0, gun: false, armed: false, key: false, fuse: false, map: false, batt: 100, spare: 0, tapes: [], heard: [], tyres: 0, flat: false, flatDay: 0, dead: false, carbatt: 0, radioOff: false, planks: 0, boombox: 0, sketches: [], ngp: false, polaroids: 0, stats: { km: 0, shots: 0, close: 0 }, up: {}, locked: false, seen: {}, phone: {}, sleepAt: null, waiting: false,
     notes: [], picked: [], doors: {}, wnote: 0, scares: {}, inMine: false, onIslet: false, bus: { ...fx.start.bus }, pl: { ...fx.start.pl }, mode: 'walk', lights: false, torch: false });
   let S = fresh();
   const pl = { x: 0, z: 0, y: 0, yaw: 0, pitch: 0, bob: 0, look: 0 };
@@ -107,7 +107,7 @@ const HOUR = 30, SLEEP_FROM = 22, HUNT_FROM = 20.5, DAWN = 30;
     pl.x = S.pl.x; pl.z = S.pl.z; pl.yaw = S.pl.yaw; pl.pitch = 0; pl.look = 0; refreshItems(); pl.y = world.ground(pl.x, pl.z);
     for (const d of fx.doorways) setBar(d, false); stalker.reset(); fig.visible = false; tracks.visible = chair.visible = boom.visible = false; distract = null; hideSpot = null; mode = S.mode || 'walk';
   };
-  const save = () => { S.bus = { x: bus.x, z: bus.z, h: bus.heading }; S.fuel = bus.fuel; S.lights = bus.lights; S.pl = { x: pl.x, z: pl.z, yaw: pl.yaw }; S.mode = mode === 'walk' || mode === 'hide' ? 'walk' : 'rear'; try { localStorage.setItem(SAVE, JSON.stringify(S)); } catch { } };
+  const save = () => { if (S.ngp) return; S.bus = { x: bus.x, z: bus.z, h: bus.heading }; S.fuel = bus.fuel; S.lights = bus.lights; S.pl = { x: pl.x, z: pl.z, yaw: pl.yaw }; S.mode = mode === 'walk' || mode === 'hide' ? 'walk' : 'rear'; try { localStorage.setItem(SAVE, JSON.stringify(S)); } catch { } };
 
   // --- Anzeige ---
   let msgT = 0;
@@ -121,10 +121,10 @@ const HOUR = 30, SLEEP_FROM = 22, HUNT_FROM = 20.5, DAWN = 30;
     setTxt('day', `Tag ${S.day} · ${String(h).padStart(2, '0')}:${String(m - m % 10).padStart(2, '0')}`);
     $('hHunger').style.width = S.hunger + '%'; $('hHunger').style.background = S.hunger < 22 ? '#a8463a' : '';
     $('hFuel').style.width = Math.min(100, bus.fuel / cap() * 100) + '%'; $('hFuel').style.background = bus.fuel < 12 ? '#a8463a' : '';
-    setTxt('obj', '→ ' + objective(S));
+    if (!S.ngp) setTxt('obj', '→ ' + objective(S));
     const drive = mode === 'drive', inBus = drive || mode === 'rear';
     document.body.classList.toggle('drive', drive);
-    show('bSet', mode !== 'menu' && mode !== 'end' && mode !== 'photo'); show('bGas', drive); show('bBrk', drive); show('bBack', drive && Math.abs(bus.v) < 0.5); show('bRadio', drive); $('bRadio').classList.toggle('on', !S.radioOff); show('bFire', mode !== 'hide' && S.gun && S.armed);
+    show('bSet', mode !== 'menu' && mode !== 'end' && mode !== 'photo'); show('bGas', drive); show('bBrk', drive); show('bBack', drive && !S.ngp && Math.abs(bus.v) < 0.5); show('bRadio', drive); $('bRadio').classList.toggle('on', !S.radioOff); show('bFire', mode !== 'hide' && S.gun && S.armed);
     gunVM.visible = (mode === 'walk' || inBus) && S.gun && S.armed;
     const slots = [['lamp', S.spare || '', drive ? bus.lights : S.torch, drive ? -1 : S.batt]];
     for (const k of ['can', 'longlife', 'apple']) if (S.inv[k]) slots.push([k, S.inv[k], false]);
@@ -167,6 +167,7 @@ const HOUR = 30, SLEEP_FROM = 22, HUNT_FROM = 20.5, DAWN = 30;
   const journal = () => {
     paused = true; const j = $('jr'); j.innerHTML = '<h2>NOTIZEN</h2><p class="o"></p>'; j.children[1].textContent = '→ ' + objective(S);
     for (const id of S.notes) { const n = NOTES[id] || (id[0] === 'w' ? { t: `Zettel an der Scheibe · Tag ${id.slice(1)}`, x: WIND[Math.min(6, +id.slice(1))] } : null); if (!n) continue; const d = document.createElement('div'); d.className = 'n'; const b = document.createElement('b'); b.textContent = n.t; d.append(b, n.x); j.append(d); }
+    if (S.sketches.length) { const hd = document.createElement('div'); hd.className = 'n'; const b = document.createElement('b'); b.textContent = 'Skizzen'; hd.append(b); const wrap = document.createElement('div'); wrap.className = 'sk'; for (const k of S.sketches) { const f = document.createElement('figure'), c = document.createElement('canvas'); c.width = 150; c.height = 110; sketchInto(c, k); const cap = document.createElement('figcaption'); cap.textContent = SKETCH[k][0]; f.append(c, cap); wrap.append(f); } hd.append(wrap); j.append(hd); }
     show('journal', true);
   };
   $('journal').addEventListener('pointerup', e => { if (e.target.id === 'journal') { show('journal', false); paused = false; } });
@@ -194,6 +195,24 @@ const HOUR = 30, SLEEP_FROM = 22, HUNT_FROM = 20.5, DAWN = 30;
   $('map').addEventListener('pointerup', () => { show('map', false); paused = false; });
   const choose = (text, opts) => { paused = true; $('chT').textContent = text; const b = $('chB'); b.innerHTML = ''; opts.forEach(([label, fn]) => { const e = document.createElement('button'); e.className = 'b'; e.textContent = label; e.onclick = () => { show('choice', false); paused = false; fn && fn(); }; b.append(e); }); show('choice', true); };
 
+  // --- Skizzen im Notizbuch: einfache Bleistiftzeichnungen (Linienzüge in 0..100) ---
+  const SKETCH = {
+    harbor: ['Der Hafen', [[5,70,95,70],[20,70,20,50,45,50,45,70],[60,70,60,30],[60,30,80,45,60,45],[5,80,30,76,55,82,80,77,95,80]]],
+    village: ['Grauwik', [[8,75,8,50,22,36,36,50,36,75,8,75],[44,75,44,45,58,32,72,45,72,75,44,75],[50,75,50,60,58,60,58,75],[80,75,80,30],[76,36,84,36],[0,75,100,75]]],
+    station: ['Die Tankstelle', [[10,35,90,35,90,42,10,42,10,35],[20,42,20,78],[80,42,80,78],[40,78,40,55,50,55,50,78],[58,78,58,55,68,55,68,78],[0,78,100,78]]],
+    cabin: ['Die Jagdhütte', [[20,78,20,50,50,28,80,50,80,78,20,78],[42,78,42,58,54,58,54,78],[60,56,72,56,72,66,60,66,60,56],[64,34,64,20,70,20,70,38]]],
+    light: ['Der Leuchtturm', [[40,85,44,30,56,30,60,85,40,85],[41,62,59,62],[42,46,58,46],[42,30,42,20,58,20,58,30],[46,20,50,10,54,20],[60,24,95,14],[60,26,95,34]]],
+    camp: ['Das Camp', [[10,78,32,40,54,78,10,78],[32,40,32,78],[58,78,74,52,90,78,58,78],[40,84,46,76,52,84]]],
+    mine: ['Das Bergwerk', [[5,80,25,30,50,18,75,30,95,80],[38,80,38,52,62,52,62,80],[38,52,50,44,62,52],[44,80,50,60],[56,80,50,60],[30,90,70,90]]],
+    mast: ['Der Sendemast', [[35,90,50,8,65,90],[40,62,60,62],[43,44,57,44],[46,26,54,26],[40,62,57,44],[60,62,43,44],[50,8,50,2]]],
+    wreck: ['Das Wrack', [[10,70,30,84,74,80,92,58],[10,70,92,58],[40,68,56,14],[62,64,74,22],[56,14,72,30,46,50],[0,88,100,86]]],
+    islet: ['Die Nebeninsel', [[15,70,35,58,65,56,85,70],[40,58,40,42,60,42,60,57],[0,74,20,72,40,76,60,72,80,76,100,73],[0,84,100,82]]],
+    man: ['Er', [[50,14,44,22,50,30,56,22,50,14],[50,30,50,66],[50,36,36,62],[50,36,64,62],[50,66,42,94],[50,66,58,94]]],
+    car: ['Das Auto unter der Plane', [[8,74,14,52,34,40,66,40,84,52,92,74,8,74],[14,52,84,52],[24,74,24,82],[76,74,76,82],[30,60,40,48],[58,48,70,62]]],
+  };
+  const sketchInto = (cv, key) => { const x = cv.getContext('2d'), W = cv.width, H = cv.height; x.fillStyle = '#d9d2bd'; x.fillRect(0, 0, W, H); x.strokeStyle = 'rgba(30,26,38,.8)'; x.lineJoin = x.lineCap = 'round';
+    for (const L of SKETCH[key][1]) for (let pass = 0; pass < 2; pass++) { x.lineWidth = pass ? 0.7 : 1.3; x.beginPath(); for (let i = 0; i < L.length; i += 2) { const px = L[i] / 100 * W + (Math.random() - 0.5) * 2.2, py = L[i + 1] / 100 * H + (Math.random() - 0.5) * 2.2; i ? x.lineTo(px, py) : x.moveTo(px, py); } x.stroke(); } };
+  const addSketch = (key) => { if (!SKETCH[key] || S.sketches.includes(key)) return; S.sketches.push(key); say(`Du skizzierst es ins Notizbuch: ${SKETCH[key][0]}.`, 3); };
   // --- Sequenzen ---
   const cine = (dur, camFn, text, done) => { cineS = { t: 0, dur, camFn, done, prev: mode }; mode = 'cine'; document.body.classList.add('cine'); if (text) say(text, dur - 0.8); };
   const through = (fn, text, sec = 1.8) => { busy = true; $('fade').style.opacity = 1; setTimeout(() => { fn(); if (text) say(text, 6); $('fade').style.opacity = 0; busy = false; hud(); }, sec * 1000); };
@@ -267,6 +286,7 @@ const HOUR = 30, SLEEP_FROM = 22, HUNT_FROM = 20.5, DAWN = 30;
     if (busy || paused || mode === 'cine') return;
     if (mode === 'hide') { mode = 'walk'; hideSpot = null; hud(); return; }
     if (mode === 'drive') {
+      if (S.ngp) return say('Du bleibst im Wagen. Du hast keine Zeit.', 3);
       if (S.wnote) return readWind();
       if (Math.abs(bus.v) > 1) return say('Erst anhalten.', 2);
       exitBus(); return;
@@ -327,7 +347,7 @@ const HOUR = 30, SLEEP_FROM = 22, HUNT_FROM = 20.5, DAWN = 30;
     else if (target.tyre) through(() => { S.flat = false; bus.flat = false; S.tyres--; S.hour = Math.min(DAWN - 0.2, S.hour + 0.5); }, 'Reifen gewechselt. Deine Hände sind schwarz.', 2.4);
     else if (target.bus) { mode = 'rear'; pl.look = Math.PI; pl.pitch = -0.1; audio.door(); hud(); if (!S.notes.includes('todo')) say('Dein Zuhause für die nächsten Tage. Am Schrank hängt ein Zettel.', 5); }
   }
-  function back() { if (mode === 'drive' && Math.abs(bus.v) < 0.5 && !busy) { mode = 'rear'; pl.look = Math.PI; pl.pitch = -0.1; hud(); } }
+  function back() { if (S.ngp) return; if (mode === 'drive' && Math.abs(bus.v) < 0.5 && !busy) { mode = 'rear'; pl.look = Math.PI; pl.pitch = -0.1; hud(); } }
   function eat(kind) {
     const need = 100 - S.hunger, order = ['apple', 'can', 'longlife'];
     const pick = kind || order.find(k => S.inv[k] && FOOD[k] >= need) || order.slice().reverse().find(k => S.inv[k]);
@@ -403,9 +423,29 @@ const HOUR = 30, SLEEP_FROM = 22, HUNT_FROM = 20.5, DAWN = 30;
       next();
     }, 2200);
   }
-  $('bEnd').onclick = () => { localStorage.removeItem(SAVE); location.reload(); };
+  $('bEnd').onclick = () => { if (!S.ngp) localStorage.removeItem(SAVE); location.reload(); };
   tap('bAct', act); tap('bFire', fire); tap('bBack', back); tap('bRadio', () => { S.radioOff = !S.radioOff; audio.click(); hud(); });
 
+  // --- Neues Spiel Plus: du bist der Mann unter der Plane ---
+  let camper = null, ngp = null;
+  const startNgp = () => {
+    audio.init(); S = fresh(); S.ngp = true; S.day = 4; S.hour = 21.6; S.hunger = 100; S.lights = true; S.bus = { x: fx.park.x, z: fx.park.z, h: fx.park.h }; applyState(); mode = 'drive'; bus.lights = true; bus.fuel = 100;
+    if (!camper) { camper = createBus(scene, world, assets); const car = assets.M.covered_car.clone(); bus.group.traverse(o => { if (o.isMesh) o.visible = false; }); bus.group.add(car); }
+    stalker.banish(); const from = world.nearestNode(world.pois.village.x, world.pois.village.z), to = world.nearestNode(world.pois.light.x, world.pois.light.z);
+    ngp = { path: [from, ...world.pathTo(from, to)], i: 0, x: world.nodes[from].x, z: world.nodes[from].z, h: 0, wait: 14, done: false }; camper.lights = true; camper.place(ngp.x, ngp.z, 0);
+    $('menu').style.display = 'none'; $('hud').style.display = 'block'; $('cross').style.display = 'block'; $('inv').style.display = 'flex'; hud();
+    say('Du erinnerst dich an alles. Er nicht. Halte den Camper auf, bevor er den Leuchtturm erreicht.', 9);
+  };
+  const ngpUpdate = (dt) => {
+    if (!ngp || ngp.done) return; const n = world.nodes;
+    if (ngp.wait > 0) ngp.wait -= dt; else if (ngp.i < ngp.path.length) { const q = n[ngp.path[ngp.i]], dx = q.x - ngp.x, dz = q.z - ngp.z, d = Math.hypot(dx, dz), sp = (q.dirt ? 6.2 : 8.4) * admin.diff().sp; if (d < 2.5) ngp.i++; else { ngp.h += Math.atan2(Math.sin(Math.atan2(dx, dz) - ngp.h), Math.cos(Math.atan2(dx, dz) - ngp.h)) * Math.min(1, dt * 3); ngp.x += Math.sin(ngp.h) * sp * dt; ngp.z += Math.cos(ngp.h) * sp * dt; } }
+    camper.x = ngp.x; camper.z = ngp.z; camper.heading = ngp.h; camper.update(dt, 0, 0, 0, false, weather.rain);
+    const dist = Math.hypot(bus.x - ngp.x, bus.z - ngp.z), left = ngp.path.length - ngp.i;
+    setTxt('obj', `→ Halte den Camper auf. Abstand ${Math.round(dist)} m · bis zum Leuchtturm noch ${left * 2} m`);
+    const finish = (lines, win) => { ngp.done = true; busy = true; audio.sting(0.6); $('fade').style.opacity = 1; setTimeout(() => { mode = 'end'; show('end', true); $('hud').style.display = 'none'; $('inv').style.display = 'none'; const p = $('endT'); let i = 0; const next = () => { if (i < lines.length) { p.style.opacity = 0; setTimeout(() => { p.textContent = lines[i++]; p.style.opacity = 1; }, 700); setTimeout(next, 5000); } else { if (win) admin.award('endC'); p.textContent = win ? 'LETZTE AUSFAHRT\n\nEnde C · Der Aufpasser' : 'LETZTE AUSFAHRT\n\nZu spät. Wieder.'; $('bEnd').style.display = ''; } }; next(); }, 2200); };
+    if (dist < 5.6) finish(['Du stellst dich quer. Der Camper bremst.', 'Du reißt die Tür auf.\nEr starrt dich an. Dein Gesicht. Jünger. Ahnungslos.', '»Fahr nicht zum Leuchtturm«, sagst du.', 'Diesmal sagst du es nicht mit Zetteln.\nDiesmal hört er zu.', 'Am Freitag legt die Fähre an.\nSie nimmt nur einen mit. Du bleibst am Kai stehen und siehst ihr nach.'], true);
+    else if (left <= 1) finish(['Die Rücklichter verschwinden hinter dem Leuchtturm.', 'Ein Licht geht an. Ein Funkgerät rauscht.', '»Tag 1. Ein paar ruhige Tage auf der Insel.«', 'Du sitzt wieder unter der Plane. Am Hafen. Und wartest.'], false);
+  };
   // --- Einstellungen, Erfolge, Admin-Menü ---
   const gotoPlace = (k) => { const p = placePos(k); S.inMine = false; world.mine.on = false; S.onIslet = k === 'islet'; const f = p.face || 0; let x = p.x + Math.sin(f) * 6, z = p.z + Math.cos(f) * 6; if (k === 'islet') { x = fx.isletSpawn.x; z = fx.isletSpawn.z; } pl.x = x; pl.z = z; pl.y = world.ground(x, z); pl.yaw = f; pl.pitch = 0; flyH = 0; mode = 'walk'; hud(); };
   admin = createAdmin({ SAVE, S: () => S, setS: o => { Object.assign(S, o); refreshItems(); hud(); }, bus, pl, world, stalker, places: PLACES, toast: t => say(t, 5), hud, pause: v => { paused = v; },
@@ -432,6 +472,7 @@ const HOUR = 30, SLEEP_FROM = 22, HUNT_FROM = 20.5, DAWN = 30;
     }
   };
   $('bStart').onclick = () => begin(hasSave); $('bNew').onclick = () => begin(false);
+  $('bNgp').style.display = runs > 0 || localStorage.getItem('la_admin') === '1' ? '' : 'none'; $('bNgp').onclick = startNgp;
   $('q').onclick = () => { dynScale = 1; qual = (qual + 1) % 3; localStorage.setItem('la_q', qual); applyQual(); };
 
   // --- Schleife ---
@@ -440,7 +481,7 @@ const HOUR = 30, SLEEP_FROM = 22, HUNT_FROM = 20.5, DAWN = 30;
   applyState(); mode = 'menu';
   const hb = world.pois.harbor;
   const menuCam = () => { const a = t * 0.03 + 1; camera.position.set(hb.x + Math.cos(a) * 30, hb.y + 8, hb.z + Math.sin(a) * 30); camera.lookAt(hb.x, hb.y + 1.5, hb.z); };
-  const hunting = () => (S.day >= 2 || runs > 0) && S.hour >= HUNT_FROM && S.hour < DAWN - 0.5 && !S.inMine && !S.onIslet;
+  const hunting = () => !S.ngp && (S.day >= 2 || runs > 0) && S.hour >= HUNT_FROM && S.hour < DAWN - 0.5 && !S.inMine && !S.onIslet;
   const near3 = (p, r, cone = 0.6) => { const dx = p.x - camera.position.x, dy = p.y - camera.position.y, dz = p.z - camera.position.z, d = Math.hypot(dx, dy, dz); return d < r && (dx * v3.x + dy * v3.y + dz * v3.z) / d > cone; };
 
   function frame() {
@@ -463,6 +504,7 @@ const HOUR = 30, SLEEP_FROM = 22, HUNT_FROM = 20.5, DAWN = 30;
       if (endCam) { endCam.t += rdt; const f = Math.min(0.55, endCam.t * 0.03); camera.position.set(endCam.x + (endCam.tx - endCam.x) * f, world.ground(endCam.x, endCam.z) + 1.15, endCam.z + (endCam.tz - endCam.z) * f); camera.lookAt(bus.x, bus.y + 1.2, bus.z); }
     } else {
       if (!C.freeze) S.hour += dt / HOUR * C.ts;
+      if (S.ngp) { S.hunger = 100; S.hour = 21.6; ngpUpdate(dt); }
       if (!C.noHunger) S.hunger = Math.max(0, S.hunger - dt * (100 / (HOUR * 17)) * admin.diff().hun * C.ts);
       if (C.infBatt) S.batt = 100;
       S.stats.km += Math.max(0, bus.dist - lastDist) / 1000; lastDist = bus.dist;
@@ -492,7 +534,7 @@ const HOUR = 30, SLEEP_FROM = 22, HUNT_FROM = 20.5, DAWN = 30;
         bus.update(dt, gas, brake, driving ? -Math.max(-1, Math.min(1, inp.mx + (k.KeyD ? 1 : 0) - (k.KeyA ? 1 : 0))) : 0, driving, weather.rain);
         if (bus.bump > 2) { audio.thud(); shake = Math.max(shake, 0.3); bus.bump = 0; }
         bus.group.updateMatrixWorld(true);
-        if (driving) camera.position.copy(bus.group.localToWorld(v3.set(0.42, 1.52, 0.47))); else camera.position.copy(bus.group.localToWorld(v3.set(-0.12, 1.4, -0.42)));
+        if (driving) camera.position.copy(bus.group.localToWorld(S.ngp ? v3.set(0.3, 1.42, 0.95) : v3.set(0.42, 1.52, 0.47))); else camera.position.copy(bus.group.localToWorld(v3.set(-0.12, 1.4, -0.42)));
         e1.set(pl.pitch, Math.PI + pl.look, 0); camera.quaternion.copy(bus.group.quaternion).multiply(q1.setFromEuler(e1));
         pl.x = bus.x; pl.z = bus.z; pl.y = bus.y; indoor = true;
         hear = driving && Math.abs(bus.v) > 1 ? 150 : driving && bus.fuel > 0 && !S.dead ? (S.radioOff ? 30 : 55) : 0;
@@ -507,7 +549,7 @@ const HOUR = 30, SLEEP_FROM = 22, HUNT_FROM = 20.5, DAWN = 30;
         setTimeout(() => { S.hunger = 30; S.hour = Math.min(DAWN - 0.3, S.hour + 3); S.inMine = false; world.mine.on = false; S.onIslet = false; mode = 'rear'; pl.look = 0; $('fade').style.opacity = 0; busy = false; hud(); say('Du bist vor Hunger zusammengebrochen. Irgendwie hast du es zurück in den Bus geschafft.', 8); }, 2600);
       }
       // entdeckte Orte (für die Karte)
-      for (const key in PLACES) { if (S.seen[key]) continue; const p = placePos(key); if (Math.hypot(pl.x - p.x, pl.z - p.z) < (p.r || 14) + 18) { S.seen[key] = 1; if (S.map && key !== 'harbor') say(`In die Karte eingetragen: ${PLACES[key]}.`, 3); } }
+      for (const key in PLACES) { if (S.seen[key]) continue; const p = placePos(key); if (Math.hypot(pl.x - p.x, pl.z - p.z) < (p.r || 14) + 18) { S.seen[key] = 1; addSketch(key); if (S.map && key !== 'harbor') say(`In die Karte eingetragen: ${PLACES[key]}.`, 3); } }
 
       // --- Ziel für Aktion ---
       target = null; let hint = '', label = '';
@@ -539,7 +581,7 @@ const HOUR = 30, SLEEP_FROM = 22, HUNT_FROM = 20.5, DAWN = 30;
         hint = T.item ? T.item.name : T.radio ? 'Funkgerät' : T.fusebox ? 'Sicherungskasten' : T.mineIn ? 'Stollen' : T.horn ? 'Abgedecktes Auto' : T.phone ? 'Das Telefon klingelt' : '';
         show('bAct', !!target);
       } else if (mode === 'hide') { label = 'Raus'; show('bAct', true); hint = 'versteckt'; }
-      else if (mode === 'drive') { label = S.wnote ? 'Zettel lesen' : 'Aussteigen'; show('bAct', S.wnote || Math.abs(bus.v) < 1); }
+      else if (mode === 'drive') { label = S.wnote ? 'Zettel lesen' : 'Aussteigen'; show('bAct', !S.ngp && (S.wnote || Math.abs(bus.v) < 1)); }
       else {
         let best = 0.8;
         for (const s of bus.spots) { v4.copy(s.p); bus.group.localToWorld(v4).sub(camera.position).normalize(); const d = v4.dot(v3); if (d > best) { best = d; target = { spot: s.id }; label = s.id === 'lock' ? (S.locked ? 'Entriegeln' : 'Verriegeln') : s.label; } }
@@ -561,6 +603,7 @@ const HOUR = 30, SLEEP_FROM = 22, HUNT_FROM = 20.5, DAWN = 30;
       if (distract) { distract.t -= dt; if (distract.t <= 0) { distract = null; } else if (distract.horn) { hornT -= dt; if (hornT <= 0) { hornT = 1.4; if (Math.hypot(pl.x - fx.horn.x, pl.z - fx.horn.z) < 160) audio.horn(); } } }
       const ev = stalker.update(C.stalkerFreeze ? 0 : dt, { sp: admin.diff().sp, gr: admin.diff().gr, px: pl.x, pz: pl.z, inBus: mode === 'drive' || mode === 'rear', busV: bus.v, bus: { x: bus.x, z: bus.z, h: bus.heading }, rear: mode === 'rear', hunt, day: S.day, hear, lit: mode === 'walk' && S.torch, hidden: mode === 'hide', locked: S.locked, lockHold: S.up.lock ? 22 : 8, spawn: stalker.spawnNext, distract, bars: fx.doorways.filter(d => d.bar) });
       if (hunt) stalker.spawnNext = null;
+      if (stalker.active && stalker.dist < 45) { addSketch('car'); if (stalker.out) addSketch('man'); }
       if (ev === 'caught') die();
       else if (ev === 'ram') { admin.vib(180); audio.thud(); shake = 1; bus.v = Math.min(17, bus.v + 2.5); post.u.uPulse.value = 0.6; }
       else if (ev === 'out') { audio.sting(0.5); say('Er hält. Die Fahrertür geht auf. Er rennt.', 3); }

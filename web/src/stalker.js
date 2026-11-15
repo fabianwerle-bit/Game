@@ -123,6 +123,7 @@ export function createStalker(scene, world, assets, park) {
   };
   // nächtlicher Überfall: er steht schon an der Schiebetür
   st.ambush = (b) => { const sn = Math.sin(b.h), cs = Math.cos(b.h); st.x = b.x - sn * 9; st.z = b.z - cs * 9; st.h = b.h; st.v = 0; st.mx = b.x - cs * 1.15 - sn * 0.4; st.mz = b.z + sn * 1.15 - cs * 0.4; man.visible = true; man.position.set(st.mx, world.ground(st.mx, st.mz) - 0.03, st.mz); man.rotation.y = Math.atan2(b.x - st.mx, b.z - st.mz); st.mode = 'rip'; st.timer = 1.6; st.pound = 0; st.ripped = false; st.graceLen = 4.6; st.knowT = 0; st.gone = false; place(); };
+  st.banish = () => { st.mode = 'parked'; st.x = 1e6; st.z = 1e6; car.visible = false; man.visible = false; box.x = 1e6; };
   st.heard = (x, z) => { if (st.active && st.mode !== 'away') { st.kx = x; st.kz = z; st.knowT = 0; if (st.mode === 'search') st.mode = 'walk'; } };
   st.showAt = (x, z, faceX, faceZ) => { man.visible = true; man.position.set(x, world.ground(x, z) - 0.03, z); man.rotation.y = Math.atan2(faceX - x, faceZ - z); man.userData.walk(0, 0); };
   return st;
