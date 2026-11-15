@@ -103,11 +103,15 @@ export function createBus(scene, world, assets) {
   st.place = (x, z, heading) => { st.x = x; st.z = z; st.heading = heading; st.v = 0; settle(1); };
   st.group = g; st.box = obox; st.wsNote = wsNote;
   // Blickziele im Wohnbereich (lokale Koordinaten)
-  st.spots = [{ id: 'bed', p: new THREE.Vector3(-0.22, 0.95, -1.5), label: 'Schlafen' }, { id: 'cook', p: new THREE.Vector3(0.63, 1.3, -1.25), label: 'Kochen' }, { id: 'todo', p: new THREE.Vector3(0.49, 1.62, -1.1), label: 'Zettel lesen' }, { id: 'seat', p: new THREE.Vector3(0.42, 1.25, 0.6), label: 'Ans Steuer' }, { id: 'exit', p: new THREE.Vector3(-0.85, 1.2, -0.3), label: 'Aussteigen' }];
+  st.spots = [{ id: 'bed', p: new THREE.Vector3(-0.22, 0.95, -1.5), label: 'Schlafen' }, { id: 'cook', p: new THREE.Vector3(0.63, 1.3, -1.25), label: 'Kochen' }, { id: 'todo', p: new THREE.Vector3(0.49, 1.62, -1.1), label: 'Zettel lesen' }, { id: 'seat', p: new THREE.Vector3(0.42, 1.25, 0.6), label: 'Ans Steuer' }, { id: 'exit', p: new THREE.Vector3(-0.85, 1.2, -0.3), label: 'Aussteigen' }, { id: 'lock', p: new THREE.Vector3(-0.85, 1.55, -0.95), label: 'Verriegeln' }, { id: 'tape', p: new THREE.Vector3(0.62, 1.34, -0.9), label: 'Kassette hören' }];
+  // Gestalt im Rückspiegel + Zusatzscheinwerfer
+  const mf = new THREE.Mesh(new THREE.PlaneGeometry(0.035, 0.04), new THREE.MeshBasicMaterial({ color: 0x000000 })); mf.position.set(0.03, 1.757, 0.9585); mf.rotation.y = Math.PI; mf.visible = false; g.add(mf); st.mirrorFig = mf;
+  const lb = new THREE.Group(); lb.visible = false; g.add(lb); box(1.0, 0.05, 0.06, black, 0, 2.03, 1.0, lb); for (const x of [-0.36, -0.12, 0.12, 0.36]) box(0.16, 0.12, 0.05, lampM, x, 2.1, 1.02, lb); st.lightbar = lb;
+  put('portable_cassette_player', 0.62, 1.37, -0.9, 0.5, 1.5).rotation.x = -Math.PI / 2;
   // gas: 0..1, brake: 0..1, steerIn: -1..1 (links +)
   st.update = (dt, gas, brake, steerIn, driving, rain) => {
     if (driving) {
-      const road = world.onRoad(st.x, st.z), vmax = road === 1 ? 15.5 : road > 0 ? 10.5 : 6.2;
+      const road = world.onRoad(st.x, st.z), vmax = st.flat ? 4.2 : road === 1 ? 15.5 : road > 0 ? 10.5 : 6.2;
       if (st.fuel <= 0) gas = 0;
       if (gas > 0 && st.v < vmax) st.v += gas * (st.v < 0 ? 7 : 3.4) * dt;
       if (brake > 0) { if (st.v > 0.4) st.v -= brake * 10 * dt; else if (st.v > -4) st.v -= brake * 2.6 * dt; }
@@ -116,7 +120,7 @@ export function createBus(scene, world, assets) {
       if (!gas && !brake && Math.abs(st.v) < 0.3) st.v = 0;
       const maxS = 0.6 - 0.36 * Math.min(1, Math.abs(st.v) / 14);
       st.steer += (steerIn * maxS - st.steer) * Math.min(1, dt * 5);
-      st.heading += st.v / 2.92 * Math.tan(st.steer) * dt;
+      st.heading += st.v / 2.92 * Math.tan(st.steer + (st.flat ? 0.05 * Math.sin(performance.now() * 0.02) + 0.03 : 0)) * dt;
       const sn = Math.sin(st.heading), cs = Math.cos(st.heading), ox = st.x, oz = st.z;
       st.x += sn * st.v * dt; st.z += cs * st.v * dt;
       let hit = false; obox.x = 1e6; // sich selbst ignorieren
@@ -124,13 +128,13 @@ export function createBus(scene, world, assets) {
       const fh = world.ground(st.x + sn * 2 * Math.sign(st.v || 1), st.z + cs * 2 * Math.sign(st.v || 1));
       if (fh < 0.55) { st.x = ox; st.z = oz; hit = true; }
       if (hit) { st.bump = Math.abs(st.v); st.v *= -0.15; }
-      const moved = Math.hypot(st.x - ox, st.z - oz); st.dist += moved; st.fuel = Math.max(0, st.fuel - moved * 0.011 - gas * dt * 0.012);
+      const moved = Math.hypot(st.x - ox, st.z - oz); st.dist += moved; st.fuel = Math.max(0, st.fuel - moved * 0.0085 - gas * dt * 0.01);
     } else st.v = 0;
     settle(dt);
     for (const w of wheels) { w.w.rotation.x += st.v * dt / 0.33; if (w.front) w.piv.rotation.y = st.steer; }
     sw.rotation.z = -st.steer * 4.2;
     const on = st.lights ? 1 : 0;
-    head.intensity = on * 420; lampM.emissiveIntensity = on * 4; tailM.emissiveIntensity = on * 1.5 + (driving && brake > 0 ? 3 : 0);
+    head.intensity = on * (st.lightbar.visible ? 900 : 420); head.angle = st.lightbar.visible ? 0.72 : 0.5; head.distance = st.lightbar.visible ? 120 : 85; lampM.emissiveIntensity = on * 4; tailM.emissiveIntensity = on * 1.5 + (driving && brake > 0 ? 3 : 0);
     if (rain > 0.05 && driving) st.wipe += dt * (2.2 + rain * 2.4); 
     const a = 1.35 - (0.5 - 0.5 * Math.cos(st.wipe)) * 1.9 * (rain > 0.05 || (st.wipe % 6.283) > 0.1 ? 1 : 0);
     wip[0].rotation.z = a; wip[1].rotation.z = a;

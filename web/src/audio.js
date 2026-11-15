@@ -43,6 +43,23 @@ export function createAudio() {
     [196, 207.6, 277.2, 293.7, 587.3].forEach(f => { const o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'sawtooth'; o.frequency.setValueAtTime(f, t); o.frequency.linearRampToValueAtTime(f * 0.94, t + 1.6); g.gain.setValueAtTime(0.16 * vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + 1.8); o.connect(g); g.connect(n.master); o.start(t); o.stop(t + 1.9); });
   };
   A.scream = () => { if (!A.ready) return; const t = ctx.currentTime; [0, 1].forEach(i => { const o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'sawtooth'; o.frequency.setValueAtTime(520 + i * 37, t); o.frequency.exponentialRampToValueAtTime(140, t + 1.3); g.gain.setValueAtTime(0.22, t); g.gain.exponentialRampToValueAtTime(0.001, t + 1.4); o.connect(g); g.connect(n.master); o.start(t); o.stop(t + 1.5); }); burst('bandpass', 1200, 1.2, 0.7, 2); };
+  A.horn = (delay = 0) => { if (!A.ready) return; const t = ctx.currentTime + delay; [330, 415].forEach(f => { const o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'square'; o.frequency.value = f; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.09, t + 0.03); g.gain.setValueAtTime(0.09, t + 0.7); g.gain.linearRampToValueAtTime(0, t + 0.8); o.connect(g); g.connect(n.master); o.start(t); o.stop(t + 0.85); }); };
+  A.foghorn = () => { if (!A.ready) return; const t = ctx.currentTime; [87, 88.5, 174].forEach(f => { const o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'sawtooth'; o.frequency.value = f; const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 400; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.14, t + 0.4); g.gain.setValueAtTime(0.14, t + 2.6); g.gain.linearRampToValueAtTime(0, t + 3.6); o.connect(lp); lp.connect(g); g.connect(n.master); o.start(t); o.stop(t + 3.7); }); };
+  A.ring = () => { if (!A.ready) return; const t = ctx.currentTime; for (let i = 0; i < 2; i++) [1320, 1650].forEach(f => { const o = ctx.createOscillator(), g = ctx.createGain(), s = t + i * 0.5; o.frequency.value = f; g.gain.setValueAtTime(0.05, s); g.gain.setValueAtTime(0.05, s + 0.3); g.gain.linearRampToValueAtTime(0, s + 0.34); o.connect(g); g.connect(n.master); o.start(s); o.stop(s + 0.36); }); };
+  A.rip = () => { if (!A.ready) return; burst('lowpass', 500, 0.5, 1.6, 0.6); burst('bandpass', 2200, 0.35, 0.8, 1.5); burst('lowpass', 120, 0.9, 1.3, 0.8, 0.05); };
+  A.crash = () => { if (!A.ready) return; burst('lowpass', 700, 0.7, 1.4, 0.6); burst('highpass', 2000, 0.3, 0.5); };
+  A.caw = () => { if (!A.ready) return; for (let i = 0; i < 3; i++) burst('bandpass', 1500 + i * 120, 0.16, 0.25, 6, i * 0.22); };
+  A.pop = () => { if (!A.ready) return; burst('lowpass', 900, 0.25, 1.5, 0.6); burst('lowpass', 200, 0.6, 1.0, 0.8, 0.05); };
+  A.hiss = (dur) => { if (!A.ready) return; burst('highpass', 4000, dur, 0.035, 0.5); burst('bandpass', 600, dur, 0.02, 0.6); };
+  // Autoradio: 0 aus, 1 Musik, 2 Rauschen; crackle = Nähe des Verfolgers
+  let radioT = 0, radioI = 0;
+  A.radio = (mode, crackle, dt) => {
+    if (!A.ready) return;
+    if (!n.rad) { n.rad = ctx.createGain(); n.rad.gain.value = 0; const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1500; bp.Q.value = 0.8; n.rad.connect(bp); bp.connect(n.master); const s = ctx.createBufferSource(); s.buffer = n.buf; s.loop = true; n.radN = ctx.createGain(); n.radN.gain.value = 0; s.connect(n.radN); n.radN.connect(bp); s.start(); }
+    set(n.rad.gain, mode === 1 ? 0.5 : 0, 0.4); set(n.radN.gain, mode === 2 ? 0.03 + crackle * 0.12 : mode === 1 ? 0.008 + crackle * 0.1 : 0, 0.3);
+    if (mode === 1) { radioT -= dt; if (radioT <= 0) { radioT = 0.42; const seq = [220, 261.6, 329.6, 392, 329.6, 261.6, 196, 246.9, 293.7, 392, 293.7, 246.9, 174.6, 220, 261.6, 349.2], f = seq[radioI++ % seq.length], t = ctx.currentTime, o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'triangle'; o.frequency.value = f; g.gain.setValueAtTime(0.11, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.8); o.connect(g); g.connect(n.rad); o.start(t); o.stop(t + 0.85); if (radioI % 4 === 1) { const b = ctx.createOscillator(), bg = ctx.createGain(); b.frequency.value = f / 2; bg.gain.setValueAtTime(0.14, t); bg.gain.exponentialRampToValueAtTime(0.001, t + 1.5); b.connect(bg); bg.connect(n.rad); b.start(t); b.stop(t + 1.6); } } }
+    if (crackle > 0.3 && Math.random() < crackle * dt * 5) burst('highpass', 2500, 0.05, 0.12 * crackle);
+  };
   let beatT = 0;
   const chirp = () => {
     const t = ctx.currentTime, base = 2200 + Math.random() * 2600, reps = 1 + (Math.random() * 5 | 0), vol = 0.015 + Math.random() * 0.03;

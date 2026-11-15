@@ -26,8 +26,11 @@ export const SIZE = 720, SEG = 288, CELL = SIZE / SEG, N = SEG + 1;
 function coastR(th) { return 205 + 95 * fbm(Math.cos(th) * 1.5 + 10, Math.sin(th) * 1.5 + 10, 3); }
 const polar = (deg, d) => { const th = deg * Math.PI / 180, r = coastR(th) * d; return new THREE.Vector2(Math.cos(th) * r, Math.sin(th) * r); };
 const LH = polar(118, 0.84); // Leuchtturm-Landzunge
+export const ISLET = { x: Math.cos(0.42) * 338, z: Math.sin(0.42) * 338 };
 function rawHeight(x, z) {
   const r = Math.hypot(x, z), th = Math.atan2(z, x), d = r / coastR(th);
+  const di = Math.hypot(x - ISLET.x, z - ISLET.z);
+  if (di < 34) return Math.max(-14, -1.0 - (d - 1) * 34, -1.5 + 5.6 * sstep(30, 9, di) + (fbm(x * 0.09, z * 0.09, 2) - 0.5) * 0.6);
   if (d >= 1) return Math.max(-14, -1.0 - (d - 1) * 34);
   const t = 1 - d;
   const hills = fbm(x * 0.0075, z * 0.0075, 4);
@@ -97,13 +100,21 @@ export function createWorld(assets, scene) {
   const rCabin = road([polar(55, 0.36), cab], 3.4, true);
   const rLight = road([onLoop(118), polar(119, 0.72), new THREE.Vector2(LH.x, LH.y)], 3.8, true);
   road([vil, polar(196, 0.4), onLoop(168)], 3.8, true);                                         // Westweg
+  // Bergwerk im Hügelland, Sendemast auf dem höchsten Punkt
+  const rMine = road([polar(215, 0.13), polar(175, 0.19), polar(152, 0.24)], 3.6, true);
+  let pk = { x: 0, z: 0, h: -1 }; for (let j = 0; j < N; j += 2) for (let i = 0; i < N; i += 2) if (H[j * N + i] > pk.h) pk = { x: gx(i), z: gx(j), h: H[j * N + i] };
+  let pn = null, pd = 1e9; for (const q of roads[3].pts) { const d = (q.x - pk.x) ** 2 + (q.z - pk.z) ** 2; if (d < pd) { pd = d; pn = q; } }
+  const rMast = road([new THREE.Vector2(pn.x, pn.z), new THREE.Vector2((pn.x + pk.x) / 2 + (pk.z - pn.z) * 0.18, (pn.z + pk.z) / 2 - (pk.x - pn.x) * 0.18), new THREE.Vector2(pk.x, pk.z)], 3.4, true);
+  rHarbor.name = 'HAFEN'; rVillage.name = 'GRAUWIK'; rCabin.name = 'JAGDHÜTTE'; rLight.name = 'LEUCHTTURM'; rMine.name = 'BERGWERK'; rMast.name = 'SENDEMAST';
   const pois = {
+    mine: { ...endInfo(rMine), r: 13 },
+    mast: { ...endInfo(rMast), r: 12 },
     station: { ...out(300, 21), r: 20 },
     camp: { ...out(205, -17), r: 12 },
     cabin: { ...endInfo(rCabin), r: 9 },
     light: { ...endInfo(rLight), r: 10 },
     harbor: { ...endInfo(rHarbor), r: 25 },
-    village: { ...endInfo(rVillage), r: 37 },
+    village: { ...endInfo(rVillage), r: 47 },
   };
 
   // ---------- Einebnen ----------
@@ -227,6 +238,7 @@ export function createWorld(assets, scene) {
 
   const platforms = [];
   const ground = (x, z) => {
+    if (mine.on && x > 400) return mine.y;
     let h = sampleH(x, z);
     for (const o of platforms) { const dx = x - o.x, dz = z - o.z, lx = dx * o.c - dz * o.s, lz = dx * o.s + dz * o.c; if (Math.abs(lx) < o.hw && Math.abs(lz) < o.hd) h = Math.max(h, o.y); }
     return h;
@@ -257,7 +269,9 @@ export function createWorld(assets, scene) {
   const hd = new Uint16Array(N * N * 4), toHalf = THREE.DataUtils.toHalfFloat;
   for (let k = 0; k < N * N; k++) { const land = 1 - Math.max(splat[k * 4 + 2], Math.min(1, splat[k * 4 + 3])); hd[k * 4] = toHalf(H[k]); hd[k * 4 + 1] = toHalf(Math.max(0, (splat[k * 4] * 0.95 + splat[k * 4 + 1] * 0.22) * land * (1 - Math.min(1, roadMask[k] * 1.6)) * (H[k] > 2.4 ? 1 : 0))); hd[k * 4 + 3] = toHalf(1); }
   const heightTex = new THREE.DataTexture(hd, N, N, THREE.RGBAFormat, THREE.HalfFloatType); heightTex.magFilter = heightTex.minFilter = THREE.LinearFilter; heightTex.needsUpdate = true;
-  const world = { nodes, nearestNode, pathTo, zones, indoor, heightTex, H, getHeight: sampleH, ground, platforms, boxes, roads, pois, roadNear, forestMask, wet, wetMats, collide, addCircle, addBox, terrain, LH };
+  const wk = polar(22, 0.985), spots = { wreck: { x: wk.x, z: wk.y, y: sampleH(wk.x, wk.y), face: Math.atan2(-wk.x, -wk.y) }, islet: { x: ISLET.x, z: ISLET.z, y: sampleH(ISLET.x, ISLET.z), face: Math.atan2(-ISLET.x, -ISLET.z) } };
+  const mine = { on: false, x0: 0, x1: 0, z0: 0, z1: 0, y: 0 };
+  const world = { coastR, spots, mine, nodes, nearestNode, pathTo, zones, indoor, heightTex, H, getHeight: sampleH, ground, platforms, boxes, roads, pois, roadNear, forestMask, wet, wetMats, collide, addCircle, addBox, terrain, LH };
   world.onRoad = (x, z) => { const r = roadNear(x, z); return r && r.d < r.s.w + 0.5 ? (r.s.dirt ? 0.75 : 1) : 0; };
   world.clearOfPois = (x, z, extra = 0) => { for (const k in pois) if (Math.hypot(x - pois[k].x, z - pois[k].z) < pois[k].r + extra) return false; return true; };
   return world;

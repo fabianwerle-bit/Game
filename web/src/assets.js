@@ -12,7 +12,8 @@ const MODELS = ['russian_food_cans_01', 'long_life_food', 'metal_jerrycan_green'
   'service_pistol', 'ammo_box', 'vintage_day_bed', 'GothicBed_01', 'Sofa_01', 'WoodenTable_01', 'painted_wooden_chair_01',
   'painted_wooden_cabinet', 'wooden_bookshelf_worn', 'electric_stove', 'vintage_radio_transceiver', 'hanging_picture_frame_01',
   'ornate_mirror_01', 'ocean_buoy', 'wooden_crate_01', 'old_military_crate', 'painted_wooden_bench', 'ArmChair_01', 'barrel_stove',
-  'wooden_axe', 'throw_pillows_01', 'vintage_electric_kettle', 'wheelchair_01', 'street_lamp_01', 'wooden_picnic_table', 'dining_table'];
+  'wooden_axe', 'throw_pillows_01', 'vintage_electric_kettle', 'wheelchair_01', 'street_lamp_01', 'wooden_picnic_table', 'dining_table',
+  'SchoolDesk_01', 'SchoolChair_01', 'dutch_ship_medium', 'portable_cassette_player', 'boombox', 'korean_public_payphone_01'];
 
 export async function loadAssets(renderer, onProgress) {
   const mgr = new THREE.LoadingManager();

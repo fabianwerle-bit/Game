@@ -40,7 +40,8 @@ export function createWeather(scene, renderer, world, scenery) {
   const st = { fog: 0.003, rain: 0, light: 1, daylight: 1, birds: 1, storm: 0, flash: 0, nextFlash: 20, thunder: null, indoor: 0, vis: 300 };
   const params = day => DAYS[Math.min(DAYS.length - 1, day - 1)];
 
-  st.update = (dt, t, day, hour, cam, indoor) => {
+  st.update = (dt, t, day, hour, cam, indoor, cave) => {
+    if (hour >= 24) hour -= 24;
     const p = params(day);
     // Tag 2: Nieselregen erst am Nachmittag. Abends immer etwas mehr Nebel.
     const eve = sstep(15, 20, hour);
@@ -79,6 +80,9 @@ export function createWeather(scene, renderer, world, scenery) {
     rain.visible = rainNow > 0.01 && !indoor;
     rg.setDrawRange(0, Math.floor(COUNT * Math.min(1, 0.25 + rainNow)) * 2);
     st.lum = lum;
+    if (cave) { // unter Tage: völlige Dunkelheit
+      scene.fog.color.setRGB(0, 0, 0); scene.fog.density = 0.075; scene.environmentIntensity = 0.004; hemi.intensity = 0.012; sun.intensity = 0; scenery.skyM.opacity = 0; rain.visible = false; st.lum = 0.02; st.vis = 60; st.cave = true;
+    } else st.cave = false;
   };
   return st;
 }

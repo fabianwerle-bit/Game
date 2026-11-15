@@ -10,19 +10,22 @@ wird es schlimmer. Und nachts kommt jemand die Straße herunter.
 - **Aktion:** nehmen, lesen, Türen, ein-/aussteigen · **Feuer:** schießen (wenn die Pistole gezogen ist)
 - **Inventarleiste unten:** antippen = benutzen (Licht an/aus, essen, Pistole ziehen, Zettel lesen)
 - **Im Bus hinten:** Bett (schlafen ab 22 Uhr), Küche (Konserve aufwärmen), Zettel, Fahrersitz, Tür – einfach hinsehen und Aktion drücken
-- Am PC (Browser): WASD, Maus, `E` Aktion, `F` Licht, `Q` Essen, `G` Pistole, Leertaste Feuer, `B` nach hinten, `J` Notizen
+- Am PC (Browser): WASD, Maus, `E` Aktion, `F` Licht, `Q` Essen, `G` Pistole, Leertaste Feuer, `B` nach hinten, `J` Notizen, `M` Karte
 
-## Inhalt (v0.2)
+## Inhalt (v0.3)
 
-- Insel ohne Raster: Hafen (Start), Dorf mit Laden, Gasthaus, Kapelle und Wohnhäusern, Tankstelle,
-  Jagdhütte, Leuchtturm, verlassenes Camp – alle Gebäude begehbar
-- Ringstraße, Querstraße über die Insel, Dorf-, Hafen- und Waldwege
-- Camper-Bus mit begehbarem Wohnbereich
-- Hunger, Sprit, Vorräte, Pistole + Munition
-- Zettel-Geschichte mit Zielen, jeden Morgen ein neuer Zettel an der Windschutzscheibe, Ende mit Wendung
-- Ab der zweiten Nacht: der Mann im abgedeckten Auto. Er folgt den Straßen, steigt aus und kommt zu Fuß.
-  Ein Treffer vertreibt ihn für eine Nacht.
-- Jumpscares, Horrorfilter (Korn, Vignette, Farbsäume, Entsättigung – wird von Tag zu Tag stärker)
+- Insel ohne Raster: Hafen (Start), Dorf Grauwik (Laden, Gasthaus, Kapelle mit Friedhof, Schule, Wohnhäuser,
+  Telefonzelle, Bushaltestelle), Tankstelle mit Werkstatt, Jagdhütte, Leuchtturm, Bergwerk mit begehbarem Stollen,
+  Sendemast, Schiffswrack, Camp, Nebeninsel (per Boot)
+- Hauptstraße mit Markierung, Leitpfosten, Strommasten, Wegweisern und Schildern; Querstraße und Waldwege
+- Camper-Bus: Wohnbereich (Bett, Küche, Riegel, Kassettenrekorder), Autoradio, Reifenpannen, Ausbauteile
+- Uhr läuft durch die Nacht bis zum Morgen; Schlafen, sobald er dich verloren hat – oder verriegelt
+- Verfolger mit Wahrnehmung: sieht Licht, hört Motor, Schritte und Schüsse; sucht die letzte bekannte Stelle ab.
+  Steht der Bus, steigt er aus, rennt zur Tür und reißt sie auf. Verstecken, Ablenken (Hupe, Kofferradio),
+  Türen verrammeln oder schießen hilft. Schläfst du zweimal am selben Platz, wartet er dort.
+- Inselkarte (findbar), Notizbuch, Kassetten, Telefon, Fotos, Spiegel, Vorzeichen am Morgen
+- Taschenlampe braucht Batterien
+- Kurze Sequenzen (Fähre legt ab, erste Sichtung), zwei Enden, Zähler für Durchläufe
 
 ## Aufbau
 
@@ -34,7 +37,7 @@ wird es schlimmer. Und nachts kommt jemand die Straße herunter.
 | `build_apk.sh` | Baut alles → `release/LetzteAusfahrt.apk` |
 
 Wichtige Dateien in `web/src/`: `world.js` (Insel, Straßen, Wegenetz), `buildings.js` (Orte, Häuser, Gegenstände),
-`bus.js`, `stalker.js` (Verfolger), `story.js` (alle Texte), `weather.js` (Eskalation pro Tag), `fx.js` (Filter, Gras),
+`details.js` (Straßendetails, Schilder, Tiere), `bus.js`, `stalker.js` (Verfolger), `story.js` (alle Texte), `weather.js` (Eskalation pro Tag), `fx.js` (Filter, Gras),
 `main.js` (Spiellogik).
 
 Im Browser testen: `cd web && npm install && npx vite`
