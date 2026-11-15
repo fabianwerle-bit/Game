@@ -14,8 +14,9 @@ export function createDetails(world, scene, fx) {
   const tan = i => { const a = loop[(i + 1) % n], b = loop[(i - 1 + n) % n]; const l = Math.hypot(a.x - b.x, a.z - b.z) || 1; return [(a.x - b.x) / l, (a.z - b.z) / l]; };
   // --- Mittellinie (gestrichelt) + Randlinien auf der Hauptstraße ---
   { const P = [], I = []; const quad = (p, q, off, hw) => { const [tx, tz] = [q.x - p.x, q.z - p.z], l = Math.hypot(tx, tz) || 1, nx = -tz / l, nz = tx / l, b = P.length / 3;
-      P.push(p.x + nx * (off - hw), p.y + 0.1, p.z + nz * (off - hw), p.x + nx * (off + hw), p.y + 0.1, p.z + nz * (off + hw), q.x + nx * (off + hw), q.y + 0.1, q.z + nz * (off + hw), q.x + nx * (off - hw), q.y + 0.1, q.z + nz * (off - hw)); I.push(b, b + 2, b + 1, b, b + 3, b + 2, b, b + 1, b + 2, b, b + 2, b + 3); };
-    for (let i = 0; i < n; i++) { const p = loop[i], q = loop[(i + 1) % n]; if (i % 4 < 2) quad(p, q, 0, 0.07); quad(p, q, 2.85, 0.05); quad(p, q, -2.85, 0.05); }
+      P.push(p.x + nx * (off - hw), p.y + 0.125, p.z + nz * (off - hw), p.x + nx * (off + hw), p.y + 0.125, p.z + nz * (off + hw), q.x + nx * (off + hw), q.y + 0.125, q.z + nz * (off + hw), q.x + nx * (off - hw), q.y + 0.125, q.z + nz * (off - hw)); I.push(b, b + 2, b + 1, b, b + 3, b + 2, b, b + 1, b + 2, b, b + 2, b + 3); };
+    const J = []; for (let j = 1; j < world.roads.length; j++) { const r = world.roads[j].pts; J.push(r[0], r[r.length - 1]); } const nearJ = p => J.some(q => (q.x - p.x) ** 2 + (q.z - p.z) ** 2 < 81);
+    for (let i = 0; i < n; i++) { const p = loop[i], q = loop[(i + 1) % n], j = nearJ(p); if (i % 4 < 2 && !j) quad(p, q, 0, 0.07); if (!j) { quad(p, q, 2.85, 0.05); quad(p, q, -2.85, 0.05); } }
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.setIndex(I); g.computeVertexNormals(); const nn = g.attributes.normal; for (let i = 0; i < nn.count; i++) nn.setXYZ(i, 0, 1, 0);
     const m = new THREE.Mesh(g, white); m.frustumCulled = false; scene.add(m); }
   // --- Leitpfosten ---

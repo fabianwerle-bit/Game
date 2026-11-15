@@ -189,8 +189,11 @@ export function createWorld(assets, scene) {
   const asphalt = roadMat(T.asphalt_02, 4), dirt = roadMat(T.brown_mud_leaves_01, 3);
   dirt.color.set(0x5d5a56);
   const wetMats = [asphalt, dirt];
-  for (const r of roads) {
+  roads.forEach((r, ri) => {
     const n = r.pts.length, cnt = r.closed ? n + 1 : n, P = [], U = [], I = [];
+    // Abzweigungen sauber: wo eine wichtigere Straße schon liegt, wird dieses Band ausgespart
+    const cov = r.pts.map(p => { for (let j = 0; j < ri; j++) { const o = roads[j], lim = (o.width / 2 - 0.35) ** 2; for (const q of o.pts) if ((q.x - p.x) ** 2 + (q.z - p.z) ** 2 < lim) return true; } return false; });
+    const lift = ri === 0 ? 0.1 : r.dirt ? 0.05 : 0.075;
     let len = 0;
     for (let i = 0; i < cnt; i++) {
       const p = r.pts[i % n], q = r.pts[(i + 1) % n] || p, o = r.pts[(i - 1 + n) % n];
@@ -198,16 +201,17 @@ export function createWorld(assets, scene) {
       let tx = a.x - b.x, tz = a.z - b.z; const l = Math.hypot(tx, tz) || 1; tx /= l; tz /= l;
       if (i > 0) len += Math.hypot(p.x - r.pts[(i - 1) % n].x, p.z - r.pts[(i - 1) % n].z);
       const hw = r.width / 2;
-      P.push(p.x - tz * hw, p.y + 0.07, p.z + tx * hw, p.x + tz * hw, p.y + 0.07, p.z - tx * hw);
+      P.push(p.x - tz * hw, p.y + lift, p.z + tx * hw, p.x + tz * hw, p.y + lift, p.z - tx * hw);
       const tile = r.dirt ? 3 : 4; U.push(0, len / tile, r.width / tile, len / tile);
-      if (i < cnt - 1) I.push(i * 2, i * 2 + 1, i * 2 + 2, i * 2 + 1, i * 2 + 3, i * 2 + 2);
+      if (i < cnt - 1 && !(cov[i % n] && cov[(i + 1) % n])) I.push(i * 2, i * 2 + 1, i * 2 + 2, i * 2 + 1, i * 2 + 3, i * 2 + 2);
     }
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(U, 2)); g.setIndex(I); g.computeVertexNormals();
     // Flächen müssen nach oben zeigen
-    if (g.attributes.normal.getY(0) < 0) { const idx = g.index.array; for (let i = 0; i < idx.length; i += 3) { const t = idx[i]; idx[i] = idx[i + 1]; idx[i + 1] = t; } g.computeVertexNormals(); }
-    const m = new THREE.Mesh(g, r.dirt ? dirt : asphalt); m.frustumCulled = false; scene.add(m);
-  }
+    let ny0 = 0; for (let i = 0; i < g.attributes.normal.count && !ny0; i++) ny0 = g.attributes.normal.getY(i);
+    if (ny0 < 0) { const idx = g.index.array; for (let i = 0; i < idx.length; i += 3) { const t = idx[i]; idx[i] = idx[i + 1]; idx[i + 1] = t; } g.computeVertexNormals(); }
+    const m = new THREE.Mesh(g, r.dirt ? dirt : asphalt); m.frustumCulled = false; m.renderOrder = -ri; scene.add(m);
+  });
 
   // ---------- Kollision ----------
   const circles = new Map(), boxes = [], CB = 8;

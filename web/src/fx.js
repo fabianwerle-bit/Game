@@ -53,7 +53,7 @@ export function createGrass(assets, world, scene, count = 9000) {
   g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(U, 2)); g.setAttribute('aBase', new THREE.Float32BufferAttribute(B, 3)); g.setIndex(I);
   const nn = new Float32Array(P.length); for (let i = 1; i < nn.length; i += 3) nn[i] = 1; g.setAttribute('normal', new THREE.BufferAttribute(nn, 3));
   assets.T.grass.wrapS = assets.T.grass.wrapT = THREE.ClampToEdgeWrapping;
-  const m = new THREE.MeshLambertMaterial({ map: assets.T.grass, alphaTest: 0.35, side: THREE.DoubleSide, color: new THREE.Color(1.5, 1.75, 1.15) });
+  const m = new THREE.MeshLambertMaterial({ map: assets.T.grass, alphaTest: 0.35, side: THREE.DoubleSide, color: new THREE.Color(2.5, 2.8, 1.9) });
   const u = { uH: { value: world.heightTex }, uCam: { value: new THREE.Vector3() }, uTime: { value: 0 }, uWind: { value: 0.3 } };
   m.onBeforeCompile = sh => {
     Object.assign(sh.uniforms, u);
